@@ -13,7 +13,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Usado para adicionar fotos às suas memórias",
+        "NSPhotoLibraryUsageDescription": "Usado para escolher fotos das suas memórias"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +25,21 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Usado para adicionar fotos às suas memórias",
+          "photosPermission": "Usado para escolher fotos das suas memórias"
+        }
+      ]
+    ]
   }
 }
