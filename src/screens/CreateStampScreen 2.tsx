@@ -33,10 +33,21 @@ import { formatDecoDate } from '../utils/stampUtils';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'Criar'>;
 
+// ── Constantes ────────────────────────────────────────────────────────────────
+
 const SCREEN_WIDTH = Dimensions.get('window').width;
-const CARD_WIDTH   = SCREEN_WIDTH - 40;
+const CARD_WIDTH   = SCREEN_WIDTH - 40;   // margem 20 × 2
+const CARD_INNER   = CARD_WIDTH - 64;     // padding 32 × 2 dentro do card
 const MAX_PHOTOS   = 6;
-const ICON_GAP = 10;
+
+// TODAY_ISO and DECO_DATE are now computed per component-mount inside the
+// component (via useState lazy init / useMemo) so they always reflect the
+// actual day the screen opens, not the app-launch time.
+
+// Grid de ícones em 4 colunas (3 gaps de 8px entre elas)
+const ICON_CELL = Math.floor((CARD_INNER - 8 * 3) / 4);
+
+// ── Categorias ────────────────────────────────────────────────────────────────
 
 const CATEGORIES: {
   key: Stamp['category'];
@@ -55,19 +66,15 @@ const COLOR_PALETTE = [
   '#27AE60', '#E67E22', '#1B2B4B',
 ];
 
-const PRESET_COLORS = [
-  '#4A90D9', '#9B59B6', '#E74C3C',
-  '#27AE60', '#E67E22', '#1B2B4B',
-  '#FF69B4', '#00CED1', '#FFD700',
-  '#FF6347', '#32CD32', '#BA55D3',
+// 16 ícones em grid 4×4 (sem sobras)
+const ICONS: React.ComponentProps<typeof Ionicons>['name'][] = [
+  'globe-outline',         'flag-outline',          'musical-notes-outline', 'wine-outline',
+  'happy-outline',         'home-outline',          'sunny-outline',         'people-outline',
+  'pizza-outline',         'cafe-outline',          'compass-outline',       'boat-outline',
+  'airplane-outline',      'film-outline',          'library-outline',       'color-palette-outline',
 ];
 
-const ICONS: React.ComponentProps<typeof Ionicons>['name'][] = [
-  'globe-outline',         'musical-notes-outline', 'wine-outline',          'happy-outline',
-  'home-outline',          'sunny-outline',         'people-outline',        'pizza-outline',
-  'cafe-outline',          'compass-outline',       'boat-outline',          'airplane-outline',
-  'film-outline',          'library-outline',       'color-palette-outline',
-];
+// ── Pontos de textura de fundo ────────────────────────────────────────────────
 
 const BG_DOTS: { top: number; left: number }[] = [];
 for (let row = 0; row < 18; row++) {
@@ -79,6 +86,8 @@ for (let row = 0; row < 18; row++) {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function CreateStampScreen({ navigation }: Props) {
   const { addStamp } = useStamps();
   const insets = useSafeAreaInsets();
@@ -87,6 +96,7 @@ export function CreateStampScreen({ navigation }: Props) {
   const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
   const decoDate = useMemo(() => formatDecoDate(new Date()), []);
 
+  // ── Estado ───────────────────────────────────────────────────────────────
   const [title,    setTitle]   = useState('');
   const [place,    setPlace]   = useState('');
   const [country,  setCountry] = useState('');
@@ -96,14 +106,12 @@ export function CreateStampScreen({ navigation }: Props) {
   const [photoScrollIndex, setPhotoScrollIndex] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<Stamp['category']>('viagem');
   const [selectedColor,    setSelectedColor]    = useState(COLOR_PALETTE[0]);
-  const [customColor,      setCustomColor]      = useState('');
-  const [isCustomColorMode, setIsCustomColorMode] = useState(false);
   const [selectedIcon,     setSelectedIcon]     = useState(ICONS[0]);
-  const [customEmoji,      setCustomEmoji]      = useState('');
-  const [isCustomEmojiMode, setIsCustomEmojiMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const stampScaleAnim = useRef(new Animated.Value(1)).current;
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
 
   const resetForm = () => {
     setTitle(''); setPlace(''); setCountry('');
@@ -111,12 +119,10 @@ export function CreateStampScreen({ navigation }: Props) {
     setPhotos([]); setPhotoScrollIndex(0);
     setSelectedCategory('viagem');
     setSelectedColor(COLOR_PALETTE[0]);
-    setCustomColor('');
-    setIsCustomColorMode(false);
     setSelectedIcon(ICONS[0]);
-    setCustomEmoji('');
-    setIsCustomEmojiMode(false);
   };
+
+  // ── Fotos ─────────────────────────────────────────────────────────────────
 
   const pickPhoto = async (source: 'camera' | 'gallery') => {
     if (photos.length >= MAX_PHOTOS) return;
@@ -155,10 +161,13 @@ export function CreateStampScreen({ navigation }: Props) {
     setPhotoScrollIndex(prev => Math.max(0, Math.min(prev, photos.length - 2)));
   };
 
+  // Atualiza o dot ativo com base no offset do scroll horizontal das fotos
   const handlePhotoScroll = (event: { nativeEvent: { contentOffset: { x: number } } }) => {
-    const idx = Math.round(event.nativeEvent.contentOffset.x / 148);
+    const idx = Math.round(event.nativeEvent.contentOffset.x / 148); // 140 + 8 de gap
     setPhotoScrollIndex(Math.max(0, Math.min(idx, photos.length - 1)));
   };
+
+  // ── Botão STAMP ───────────────────────────────────────────────────────────
 
   const handleStampPressIn = () =>
     Animated.timing(stampScaleAnim, { toValue: 0.95, duration: 80, useNativeDriver: true }).start();
@@ -201,6 +210,8 @@ export function CreateStampScreen({ navigation }: Props) {
     ]);
   };
 
+  // ── RENDER ────────────────────────────────────────────────────────────────
+
   return (
     <View style={styles.screen}>
 
@@ -232,6 +243,7 @@ export function CreateStampScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}
         >
 
+          {/* ── Header ──────────────────────────────────────────────────── */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backBtn}
@@ -245,12 +257,16 @@ export function CreateStampScreen({ navigation }: Props) {
             <View style={styles.headerRight} />
           </View>
 
+          {/* ── Card "Passport Page" ────────────────────────────────────── */}
           <View style={styles.passportCard}>
             <View style={styles.cardInnerBorder} pointerEvents="none" />
 
+            {/* Data decorativa — canto superior direito */}
             <Text style={styles.decoDate}>{decoDate}</Text>
 
+            {/* ── Secção de fotos ──────────────────────────────────────── */}
             {photos.length === 0 ? (
+              // Estado sem fotos: botão compacto de 72px
               <TouchableOpacity
                 style={styles.photoEmpty}
                 onPress={handlePhotoPress}
@@ -260,6 +276,7 @@ export function CreateStampScreen({ navigation }: Props) {
                 <Text style={styles.photoEmptyText}>Adicionar evidência fotográfica</Text>
               </TouchableOpacity>
             ) : (
+              // Estado com fotos: miniaturas horizontais + dots
               <View style={styles.photoHasSection}>
                 <ScrollView
                   horizontal
@@ -280,6 +297,7 @@ export function CreateStampScreen({ navigation }: Props) {
                       </TouchableOpacity>
                     </View>
                   ))}
+                  {/* Card de adicionar mais fotos */}
                   {photos.length < MAX_PHOTOS && (
                     <TouchableOpacity
                       style={styles.photoAddCard}
@@ -292,6 +310,7 @@ export function CreateStampScreen({ navigation }: Props) {
                   )}
                 </ScrollView>
 
+                {/* Dots + contador */}
                 <View style={styles.photoDotRow}>
                   <View style={styles.photoDots}>
                     {photos.map((_, i) => (
@@ -315,6 +334,7 @@ export function CreateStampScreen({ navigation }: Props) {
 
             <View style={styles.cardDivider} />
 
+            {/* ── ENTRY TITLE ── */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>ENTRY TITLE</Text>
               <View style={styles.fieldRow}>
@@ -328,6 +348,7 @@ export function CreateStampScreen({ navigation }: Props) {
               </View>
             </View>
 
+            {/* ── LOCALIZAÇÃO ── */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>LOCALIZAÇÃO</Text>
               <View style={styles.fieldRow}>
@@ -342,6 +363,7 @@ export function CreateStampScreen({ navigation }: Props) {
               </View>
             </View>
 
+            {/* ── PAÍS / TERRITÓRIO ── */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>PAÍS / TERRITÓRIO</Text>
               <View style={styles.fieldRow}>
@@ -356,6 +378,7 @@ export function CreateStampScreen({ navigation }: Props) {
               </View>
             </View>
 
+            {/* ── DATA DE ENTRADA ── */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>DATA DE ENTRADA</Text>
               <View style={styles.fieldRow}>
@@ -372,6 +395,7 @@ export function CreateStampScreen({ navigation }: Props) {
               </View>
             </View>
 
+            {/* ── OBSERVAÇÕES ── */}
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>OBSERVAÇÕES DE CAMPO</Text>
               <View style={[styles.fieldRow, { alignItems: 'flex-start' }]}>
@@ -396,6 +420,7 @@ export function CreateStampScreen({ navigation }: Props) {
 
             <View style={styles.cardDivider} />
 
+            {/* ── CLASSIFICATION — chips ── */}
             <Text style={styles.sectionLabel}>CLASSIFICATION</Text>
             <ScrollView
               horizontal
@@ -426,10 +451,11 @@ export function CreateStampScreen({ navigation }: Props) {
 
             <View style={styles.cardDivider} />
 
+            {/* ── COLOR TAG ── */}
             <Text style={styles.sectionLabel}>COLOR TAG</Text>
             <View style={styles.colorRow}>
-              {PRESET_COLORS.map((color) => {
-                const active = !isCustomColorMode && selectedColor === color;
+              {COLOR_PALETTE.map((color) => {
+                const active = selectedColor === color;
                 return (
                   <TouchableOpacity
                     key={color}
@@ -438,109 +464,40 @@ export function CreateStampScreen({ navigation }: Props) {
                       { backgroundColor: color },
                       active && styles.colorCircleActive,
                     ]}
-                    onPress={() => {
-                      setSelectedColor(color);
-                      setIsCustomColorMode(false);
-                    }}
+                    onPress={() => setSelectedColor(color)}
                     activeOpacity={0.8}
                   />
                 );
               })}
-              <TouchableOpacity
-                style={[
-                  styles.colorCircle,
-                  styles.customColorButton,
-                  isCustomColorMode && styles.colorCircleActive,
-                  isCustomColorMode && customColor && { backgroundColor: customColor },
-                ]}
-                onPress={() => setIsCustomColorMode(true)}
-                activeOpacity={0.8}
-              >
-                {!isCustomColorMode || !customColor ? (
-                  <Ionicons name="add-circle-outline" size={20} color={COLORS.onSurfaceVariant} />
-                ) : null}
-              </TouchableOpacity>
             </View>
-
-            {isCustomColorMode && (
-              <View style={styles.customColorInputContainer}>
-                <TextInput
-                  style={styles.customColorInput}
-                  placeholder="#HEX color (e.g., #FF5733)"
-                  placeholderTextColor={COLORS.outlineVariant}
-                  value={customColor}
-                  onChangeText={(text) => {
-                    setCustomColor(text);
-                    if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
-                      setSelectedColor(text);
-                    }
-                  }}
-                  maxLength={7}
-                  autoCapitalize="characters"
-                />
-              </View>
-            )}
 
             <View style={styles.cardDivider} />
 
-            <Text style={styles.sectionLabel}>ICON</Text>
+            {/* ── ÍCONE — grid 4 colunas ── */}
+            <Text style={styles.sectionLabel}>ÍCONE</Text>
             <View style={styles.iconGrid}>
-              {[...ICONS, 'custom-emoji' as const].map((icon) => {
-                const isCustom = icon === 'custom-emoji';
-                const active = isCustom ? isCustomEmojiMode : (!isCustomEmojiMode && selectedIcon === icon);
-
+              {ICONS.map((icon) => {
+                const active = selectedIcon === icon;
                 return (
                   <TouchableOpacity
-                    key={isCustom ? 'custom' : icon}
+                    key={icon}
                     style={[styles.iconCell, active && styles.iconCellActive]}
-                    onPress={() => {
-                      if (isCustom) {
-                        setIsCustomEmojiMode(true);
-                      } else {
-                        setSelectedIcon(icon as React.ComponentProps<typeof Ionicons>['name']);
-                        setIsCustomEmojiMode(false);
-                      }
-                    }}
+                    onPress={() => setSelectedIcon(icon)}
                     activeOpacity={0.7}
                   >
-                    {isCustom ? (
-                      isCustomEmojiMode && customEmoji ? (
-                        <Text style={styles.customEmojiDisplay}>{customEmoji}</Text>
-                      ) : (
-                        <Ionicons
-                          name="add-circle-outline"
-                          size={22}
-                          color={active ? COLORS.secondary : COLORS.onSurfaceVariant}
-                        />
-                      )
-                    ) : (
-                      <Ionicons
-                        name={icon as React.ComponentProps<typeof Ionicons>['name']}
-                        size={22}
-                        color={active ? COLORS.secondary : COLORS.onSurfaceVariant}
-                      />
-                    )}
+                    <Ionicons
+                      name={icon}
+                      size={22}
+                      color={active ? COLORS.secondary : COLORS.onSurfaceVariant}
+                    />
                   </TouchableOpacity>
                 );
               })}
             </View>
 
-            {isCustomEmojiMode && (
-              <View style={styles.emojiInputContainer}>
-                <TextInput
-                  style={styles.emojiInput}
-                  placeholder="Digite um emoji..."
-                  placeholderTextColor={COLORS.outlineVariant}
-                  value={customEmoji}
-                  onChangeText={setCustomEmoji}
-                  maxLength={2}
-                  autoFocus
-                />
-              </View>
-            )}
-
           </View>
 
+          {/* ── Área de ação ───────────────────────────────────────────────── */}
           <View style={styles.actionArea}>
             <Text style={styles.pressHint}>Press firmly to certify entry</Text>
 
@@ -580,6 +537,8 @@ export function CreateStampScreen({ navigation }: Props) {
   );
 }
 
+// ── Estilos ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.background },
   flex:   { flex: 1 },
@@ -588,6 +547,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
 
+  // Pontos de textura de fundo
   bgDot: {
     position: 'absolute',
     width: 1.5, height: 1.5,
@@ -596,6 +556,7 @@ const styles = StyleSheet.create({
     opacity: 0.10,
   },
 
+  // Elemento decorativo de canto
   decorativeCorner: {
     position: 'absolute',
     bottom: 220, right: -12,
@@ -614,6 +575,7 @@ const styles = StyleSheet.create({
     fontSize: 12, color: COLORS.secondary, letterSpacing: 2,
   },
 
+  // Header
   header: {
     flexDirection: 'row', alignItems: 'center',
     marginBottom: 20,
@@ -667,6 +629,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5, marginBottom: 12,
   },
 
+  // ── Secção de fotos — estado vazio ──
   photoEmpty: {
     height: 72,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -681,6 +644,7 @@ const styles = StyleSheet.create({
     color: COLORS.outline, letterSpacing: 1,
   },
 
+  // ── Secção de fotos — com fotos ──
   photoHasSection: {
     marginBottom: 4,
   },
@@ -782,11 +746,7 @@ const styles = StyleSheet.create({
 
   // Seletor de cor
   colorRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    paddingVertical: 4,
-    justifyContent: 'center',
+    flexDirection: 'row', gap: 12, paddingVertical: 4,
   },
   colorCircle: {
     width: 36, height: 36, borderRadius: 18,
@@ -796,42 +756,13 @@ const styles = StyleSheet.create({
     borderWidth: 3, borderColor: COLORS.onSurface,
     transform: [{ scale: 1.15 }],
   },
-  customColorButton: {
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  customColorInputContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.outlineVariant,
-  },
-  customColorInput: {
-    fontFamily: FONTS.labelStampRegular,
-    fontSize: 14,
-    color: COLORS.onSurface,
-    textAlign: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.surfaceContainer,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-  },
 
   // Grid de ícones (4 colunas)
   iconGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-evenly',
-    gap: ICON_GAP,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 8,
   },
   iconCell: {
-    width: 70, height: 70,
+    width: ICON_CELL, height: ICON_CELL,
     alignItems: 'center', justifyContent: 'center',
     borderRadius: 6,
     borderWidth: 1, borderColor: COLORS.outlineVariant,
@@ -840,27 +771,6 @@ const styles = StyleSheet.create({
   iconCellActive: {
     backgroundColor: `${COLORS.secondary}22`,
     borderColor: COLORS.secondary, borderWidth: 1.5,
-  },
-  customEmojiDisplay: {
-    fontSize: 22,
-  },
-  emojiInputContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.outlineVariant,
-  },
-  emojiInput: {
-    fontFamily: FONTS.labelStampRegular,
-    fontSize: 24,
-    color: COLORS.onSurface,
-    textAlign: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    backgroundColor: COLORS.surfaceContainer,
-    borderRadius: RADIUS.md,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
   },
 
   // Área de ação

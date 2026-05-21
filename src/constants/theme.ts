@@ -32,6 +32,10 @@ export const COLORS = {
   error:          '#ba1a1a',
   errorContainer: '#ffdad6',
 
+  // On-primary — light ink/icon colour used over primaryContainer backgrounds
+  // (e.g. the book-volume cover in PassportScreen)
+  onPrimary: '#d5e3ff',
+
   // ── Aliases legados — mantidos até migração completa das telas ──────────
   CREAM:      '#fef9ed',   // → background
   NAVY:       '#05152b',   // → primary

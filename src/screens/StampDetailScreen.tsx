@@ -23,71 +23,26 @@ import {
   SHADOW_STRONG,
   SPACING,
 } from '../constants/theme';
-import type { PassporteStackParamList } from '../navigation/types';
 import type { Stamp } from '../types';
+import {
+  CATEGORY_ICONS,
+  CATEGORY_LABELS,
+  formatArrivalDate,
+  formatDateLong,
+  getNegativeNumber,
+  resolvePhotos,
+  resolveStampIcon,
+} from '../utils/stampUtils';
 
-type Props = NativeStackScreenProps<PassporteStackParamList, 'StampDetail'>;
+// StampDetail is registered in three different stacks (Passaporte, Coleção,
+// Buscar). A standalone param-list type keeps the component independent of any
+// specific stack and prevents incorrect navigation-prop inference.
+type StampDetailParamList = { StampDetail: { stamp: Stamp } };
+type Props = NativeStackScreenProps<StampDetailParamList, 'StampDetail'>;
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
-// Largura de cada foto: desconta o padding horizontal do container (20 × 2)
+// Photo width: 20 px horizontal padding on each side of the scroll container.
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
-
-// ── Helpers de formatação ─────────────────────────────────────────────────────
-
-// "2024-01-20" → "20.JAN.24"  (formato de entrada de passaporte)
-function formatArrivalDate(dateStr: string): string {
-  const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) return dateStr;
-  return `${parts[2]}.${MONTHS[parseInt(parts[1], 10) - 1]}.${parts[0].slice(-2)}`;
-}
-
-// "2024-01-20" → "20 de janeiro de 2024"
-function formatDateLong(dateStr: string): string {
-  const MONTHS = [
-    'janeiro','fevereiro','março','abril','maio','junho',
-    'julho','agosto','setembro','outubro','novembro','dezembro',
-  ];
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) return dateStr;
-  return `${parseInt(parts[2], 10)} de ${MONTHS[parseInt(parts[1], 10) - 1]} de ${parts[0]}`;
-}
-
-// Resolve fotos com suporte ao campo legado photo
-function resolvePhotos(stamp: Stamp): string[] {
-  if (stamp.photos && stamp.photos.length > 0) return stamp.photos;
-  if (stamp.photo) return [stamp.photo];
-  return [];
-}
-
-// Gera número de "negativo fotográfico" determinístico a partir do id
-function getNegativeNumber(id: string): string {
-  const sum = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return String((sum % 900) + 100).padStart(3, '0');
-}
-
-const CATEGORY_ICONS: Record<Stamp['category'], React.ComponentProps<typeof Ionicons>['name']> = {
-  viagem:      'airplane-outline',
-  show:        'musical-notes-outline',
-  restaurante: 'restaurant-outline',
-  evento:      'calendar-outline',
-  outro:       'star-outline',
-};
-
-const CATEGORY_LABELS: Record<Stamp['category'], string> = {
-  viagem:      'Viagem',
-  show:        'Show',
-  restaurante: 'Restaurante',
-  evento:      'Evento',
-  outro:       'Outro',
-};
-
-function resolveStampIcon(stamp: Stamp): React.ComponentProps<typeof Ionicons>['name'] {
-  if (stamp.icon && /^[a-z][a-z0-9-]+$/.test(stamp.icon)) {
-    return stamp.icon as React.ComponentProps<typeof Ionicons>['name'];
-  }
-  return CATEGORY_ICONS[stamp.category];
-}
 
 // ── Componente ────────────────────────────────────────────────────────────────
 

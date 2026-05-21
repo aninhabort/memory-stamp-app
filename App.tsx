@@ -140,8 +140,6 @@ const tabStyles = StyleSheet.create({
     borderRadius: 999,
     gap: 3,
   },
-  // Sem pill — apenas cor muda (ativo/inativo tratado nos filhos icon/label)
-  tabItemActive: {},
   tabLabel: {
     fontFamily: FONTS.labelCaps,
     fontSize: 9,

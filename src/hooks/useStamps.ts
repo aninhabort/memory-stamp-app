@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stamp } from '../types';
 
@@ -118,6 +118,11 @@ export function useStamps() {
   const [stamps, setStamps] = useState<Stamp[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Mirrors the stamps state so addStamp / deleteStamp can read the current
+  // list without an extra AsyncStorage round-trip.
+  const stampsRef = useRef<Stamp[]>([]);
+  useEffect(() => { stampsRef.current = stamps; }, [stamps]);
+
   const loadStamps = useCallback(async () => {
     try {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
@@ -151,10 +156,8 @@ export function useStamps() {
       id: Date.now().toString(),
       createdAt: new Date().toISOString(),
     };
+    const updated = [...stampsRef.current, stamp];
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      const current: Stamp[] = stored ? JSON.parse(stored) : [];
-      const updated = [...current, stamp];
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setStamps(updated);
     } catch (error) {
@@ -163,10 +166,8 @@ export function useStamps() {
   }, []);
 
   const deleteStamp = useCallback(async (id: string) => {
+    const updated = stampsRef.current.filter((s) => s.id !== id);
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      const current: Stamp[] = stored ? JSON.parse(stored) : [];
-      const updated = current.filter((s) => s.id !== id);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
       setStamps(updated);
     } catch (error) {

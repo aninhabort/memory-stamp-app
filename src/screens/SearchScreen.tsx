@@ -20,25 +20,9 @@ import {
 } from '../constants/theme';
 import { Stamp } from '../types';
 import { BuscarStackParamList } from '../navigation/types';
+import { CATEGORY_LABELS_EN, getEntryCode } from '../utils/stampUtils';
 
 type BuscarNavigation = NativeStackNavigationProp<BuscarStackParamList, 'BuscarHome'>;
-
-const CATEGORY_LABELS: Record<Stamp['category'], string> = {
-  viagem:      'Expedition',
-  show:        'Performance',
-  restaurante: 'Gastronomy',
-  evento:      'Event',
-  outro:       'Miscellaneous',
-};
-
-// Gera o código de entrada: 2 letras do país/lugar + "-" + ano
-// Ex: "PT-2026", "BR-2024"
-function getEntryCode(stamp: Stamp): string {
-  const source = (stamp.country || stamp.place).trim();
-  const prefix = source.slice(0, 2).toUpperCase().replace(/[^A-Z]/g, 'X');
-  const year   = stamp.date.split('-')[0];
-  return `${prefix}-${year}`;
-}
 
 export function SearchScreen() {
   const navigation = useNavigation<BuscarNavigation>();
@@ -74,7 +58,7 @@ export function SearchScreen() {
       <View style={styles.resultLeft}>
         <Text style={styles.resultTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.resultCategory}>
-          {CATEGORY_LABELS[item.category].toUpperCase()} · {item.place}
+          {CATEGORY_LABELS_EN[item.category].toUpperCase()} · {item.place}
         </Text>
       </View>
       <Text style={styles.resultCode}>{getEntryCode(item)}</Text>

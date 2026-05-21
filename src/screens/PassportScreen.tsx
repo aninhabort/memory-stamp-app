@@ -39,10 +39,12 @@ type PassportNavigation = CompositeNavigationProp<
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
-// Cor do interior do volume (spine mais escura, capa levemente mais clara)
-const VOLUME_BG    = '#1b2a41';
-const VOLUME_SPINE = '#05152b';
-const VOLUME_INK   = '#d5e3ff'; // texto e ícones sobre fundo escuro
+// Volume colour aliases — map directly to theme tokens so the palette stays in
+// one place. COLORS.primaryContainer = book face, COLORS.primary = spine edge,
+// COLORS.onPrimary = ink/icon colour on the dark cover.
+const VOLUME_BG    = COLORS.primaryContainer; // '#1b2a41'
+const VOLUME_SPINE = COLORS.primary;          // '#05152b'
+const VOLUME_INK   = COLORS.onPrimary;        // '#d5e3ff'
 
 export function PassportScreen() {
   const navigation = useNavigation<PassportNavigation>();
@@ -468,8 +470,9 @@ const styles = StyleSheet.create({
     paddingBottom: 96,
   },
   row: {
-    gap: 12,
-    marginBottom: 8,
+    gap: 20,
+    marginBottom: 20,
+    justifyContent: 'center',
   },
 
   // FAB — lápis burgund

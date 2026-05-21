@@ -10,8 +10,13 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import {
+  CompositeNavigationProp,
+  useNavigation,
+  useFocusEffect,
+} from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useStamps } from '../hooks/useStamps';
 import { useUserName } from '../hooks/useUserName';
 import { StampCard, CIRCLE_SIZE } from '../components/StampCard';
@@ -24,28 +29,22 @@ import {
   SPACING,
 } from '../constants/theme';
 import { Stamp } from '../types';
-import { ColeçãoStackParamList } from '../navigation/types';
+import { ColeçãoStackParamList, RootTabParamList } from '../navigation/types';
+import {
+  resolveCoverPhoto,
+  getInitials,
+  getDocNo,
+} from '../utils/stampUtils';
 
-type CollectionNavigation = NativeStackNavigationProp<ColeçãoStackParamList, 'ColeçãoHome'>;
+// Composite type gives access to both the stack's own routes (StampDetail) and
+// the parent tab routes (Criar), eliminating the `as any` cast.
+type CollectionNavigation = CompositeNavigationProp<
+  NativeStackNavigationProp<ColeçãoStackParamList, 'ColeçãoHome'>,
+  BottomTabNavigationProp<RootTabParamList>
+>;
 
 // Item de grid: stamp real ou célula "adicionar"
 type GridCell = Stamp | { type: 'add' };
-
-// Resolve a foto de capa do stamp (photos[] ou legado photo)
-function resolveCover(stamp: Stamp): string | undefined {
-  return stamp.photos?.[0] ?? stamp.photo;
-}
-
-// Deriva as iniciais do nome (até 2 letras)
-function getInitials(name: string): string {
-  return name.trim().split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('');
-}
-
-// Número de documento determinístico baseado no nome
-function getDocNo(name: string): string {
-  const hash = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-  return `DOC-${(hash % 9000) + 1000}`;
-}
 
 export function CollectionScreen() {
   const navigation   = useNavigation<CollectionNavigation>();
@@ -98,8 +97,8 @@ export function CollectionScreen() {
 
   const handleStampPress = (stamp: Stamp) => navigation.navigate('StampDetail', { stamp });
   const handleLatestLogPress = () => { if (latestLog) navigation.navigate('StampDetail', { stamp: latestLog }); };
-  // Navega para a tab "Criar" através do navigator pai
-  const handleAddPress = () => { (navigation.getParent() as any)?.navigate('Criar'); };
+  // Composite navigation type already includes the parent tab routes.
+  const handleAddPress = () => navigation.navigate('Criar');
 
   // ── Render helpers ────────────────────────────────────────────────────────
 
@@ -206,9 +205,9 @@ export function CollectionScreen() {
       </View>
 
       {/* Foto (se existir) */}
-      {resolveCover(latestLog) ? (
+      {resolveCoverPhoto(latestLog) ? (
         <Image
-          source={{ uri: resolveCover(latestLog) }}
+          source={{ uri: resolveCoverPhoto(latestLog) }}
           style={styles.latestLogPhoto}
           resizeMode="cover"
         />

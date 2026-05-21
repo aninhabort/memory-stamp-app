@@ -15,6 +15,12 @@ import {
   RADIUS,
   SHADOW_PAPER,
 } from '../constants/theme';
+import {
+  formatDateShort,
+  getCardRotation,
+  resolveCoverPhoto,
+  resolveStampIcon,
+} from '../utils/stampUtils';
 
 interface StampCardProps {
   stamp: Stamp;
@@ -31,38 +37,8 @@ export const CIRCLE_SIZE = Math.floor(STAMP_SIZE * 0.75);
 const RECT_W = STAMP_SIZE - 16;
 const RECT_H = Math.floor(STAMP_SIZE * 0.75);
 
-const MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-
-function formatDate(dateStr: string): string {
-  const parts = dateStr.split('-');
-  if (parts.length !== 3) return dateStr;
-  return `${MONTHS[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
-}
-
-const CATEGORY_FALLBACK: Record<Stamp['category'], React.ComponentProps<typeof Ionicons>['name']> = {
-  viagem:      'airplane-outline',
-  show:        'musical-notes-outline',
-  restaurante: 'wine-outline',
-  evento:      'calendar-outline',
-  outro:       'star-outline',
-};
-
-function resolveIcon(stamp: Stamp): React.ComponentProps<typeof Ionicons>['name'] {
-  if (stamp.icon && /^[a-z][a-z0-9-]+$/.test(stamp.icon)) {
-    return stamp.icon as React.ComponentProps<typeof Ionicons>['name'];
-  }
-  return CATEGORY_FALLBACK[stamp.category];
-}
-
-// Rotação determinística de -2 a +2 graus baseada no id
-function getCardRotation(id: string): string {
-  const sum = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-  return `${(sum % 5) - 2}deg`;
-}
-
-function resolveCoverPhoto(stamp: Stamp): string | undefined {
-  return stamp.photos?.[0] ?? stamp.photo;
-}
+// Date formatting, icon resolution, rotation, and cover-photo helpers are
+// provided by the shared stampUtils module (imported above).
 
 export function StampCard({ stamp, variant = 'grid', index = 0 }: StampCardProps) {
   const fadeAnim  = useRef(new Animated.Value(0)).current;
@@ -77,8 +53,8 @@ export function StampCard({ stamp, variant = 'grid', index = 0 }: StampCardProps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const animBase  = { opacity: fadeAnim, transform: [{ translateY: slideAnim }] };
-  const rotation  = getCardRotation(stamp.id);
+  const animBase   = { opacity: fadeAnim, transform: [{ translateY: slideAnim }] };
+  const rotation   = getCardRotation(stamp.id);
   const coverPhoto = resolveCoverPhoto(stamp);
   const extraPhotos = (stamp.photos?.length ?? 0) - 1;
 
@@ -98,7 +74,7 @@ export function StampCard({ stamp, variant = 'grid', index = 0 }: StampCardProps
             </View>
           ) : (
             <View style={[styles.listCircle, { backgroundColor: stamp.color + '26' }]}>
-              <Ionicons name={resolveIcon(stamp)} size={22} color={stamp.color} />
+              <Ionicons name={resolveStampIcon(stamp)} size={22} color={stamp.color} />
             </View>
           )}
 
@@ -107,7 +83,7 @@ export function StampCard({ stamp, variant = 'grid', index = 0 }: StampCardProps
             <Text style={styles.listSub} numberOfLines={1}>
               {stamp.place}{stamp.country ? `, ${stamp.country}` : ''}
             </Text>
-            <Text style={styles.listDate}>{formatDate(stamp.date)}</Text>
+            <Text style={styles.listDate}>{formatDateShort(stamp.date)}</Text>
           </View>
 
           <Ionicons name="chevron-forward" size={18} color={COLORS.secondary} style={styles.listArrow} />
@@ -122,13 +98,13 @@ export function StampCard({ stamp, variant = 'grid', index = 0 }: StampCardProps
       <Animated.View style={[animBase, styles.gridCell]}>
         <View style={{ transform: [{ rotate: rotation }], alignItems: 'center' }}>
           <View style={[styles.circleCard, { borderColor: stamp.color }]}>
-            <Ionicons name={resolveIcon(stamp)} size={28} color={stamp.color} />
+            <Ionicons name={resolveStampIcon(stamp)} size={28} color={stamp.color} />
           </View>
           <Text style={styles.circlePlace} numberOfLines={1}>
             {stamp.place}
           </Text>
           <Text style={[styles.circleDate, { color: stamp.color }]}>
-            {formatDate(stamp.date)}
+            {formatDateShort(stamp.date)}
           </Text>
         </View>
       </Animated.View>
@@ -145,10 +121,10 @@ export function StampCard({ stamp, variant = 'grid', index = 0 }: StampCardProps
           { transform: [{ rotate: rotation }] },
         ]}
       >
-        <Ionicons name={resolveIcon(stamp)} size={28} color={stamp.color} />
+        <Ionicons name={resolveStampIcon(stamp)} size={28} color={stamp.color} />
         <Text style={styles.rectTitle} numberOfLines={2}>{stamp.title}</Text>
         <Text style={[styles.rectDate, { color: stamp.color }]}>
-          {formatDate(stamp.date)}
+          {formatDateShort(stamp.date)}
         </Text>
       </View>
     </Animated.View>
@@ -160,7 +136,8 @@ const styles = StyleSheet.create({
   gridCell: {
     flex: 1,
     alignItems: 'center',
-    paddingBottom: 8,
+    justifyContent: 'center',
+    paddingVertical: 12,
   },
 
   // ── Circular (viagem) ──
