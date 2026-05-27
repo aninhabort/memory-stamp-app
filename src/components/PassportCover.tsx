@@ -13,21 +13,21 @@ export function PassportCover({ stampCount, userName, onEditName }: PassportCove
   return (
     <View style={styles.container}>
       <View style={styles.innerBorder}>
-        {/* Ícone de globo substituindo emoji */}
-        <Ionicons name="globe-outline" size={60} color={COLORS.GOLD} style={styles.globe} />
+        {/* Globe icon */}
+        <Ionicons name="globe-outline" size={60} color={COLORS.secondary} style={styles.globe} />
 
-        <Text style={styles.title}>PASSAPORTE DE MEMÓRIAS</Text>
+        <Text style={styles.title}>MEMORY PASSPORT</Text>
 
-        {/* Nome clicável com ícone de lápis */}
+        {/* Editable name with pencil icon */}
         <TouchableOpacity style={styles.nameRow} onPress={onEditName} activeOpacity={0.7}>
           <Text style={styles.subtitle}>{userName}</Text>
-          <Ionicons name="pencil" size={14} color={COLORS.GOLD} />
+          <Ionicons name="pencil" size={14} color={COLORS.secondary} />
         </TouchableOpacity>
 
         <View style={styles.divider} />
 
         <Text style={styles.counter}>
-          {stampCount} {stampCount === 1 ? 'selo colecionado' : 'selos colecionados'}
+          {stampCount} {stampCount === 1 ? 'stamp collected' : 'stamps collected'}
         </Text>
       </View>
     </View>
@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     height: 220,
     marginHorizontal: 16,
     marginBottom: 20,
-    backgroundColor: COLORS.NAVY,
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     padding: 3,
     ...SHADOW,
@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 10,
     borderWidth: 2,
-    borderColor: COLORS.GOLD,
+    borderColor: COLORS.secondary,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 20,
@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: FONTS.bold,
     fontSize: 13,
-    color: COLORS.GOLD,
+    color: COLORS.secondary,
     letterSpacing: 3,
     textAlign: 'center',
     marginBottom: 6,
@@ -74,19 +74,19 @@ const styles = StyleSheet.create({
   subtitle: {
     fontFamily: FONTS.regular,
     fontSize: 16,
-    color: COLORS.CREAM,
+    color: COLORS.background,
   },
   divider: {
     width: 60,
     height: 1,
-    backgroundColor: COLORS.GOLD,
+    backgroundColor: COLORS.secondary,
     opacity: 0.5,
     marginBottom: 10,
   },
   counter: {
     fontFamily: FONTS.regular,
     fontSize: 12,
-    color: COLORS.GOLD,
+    color: COLORS.secondary,
     letterSpacing: 1,
   },
 });

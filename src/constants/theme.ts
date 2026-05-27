@@ -1,7 +1,7 @@
-// ─── Design System — Memory Stamp App ────────────────────────────────────────
-// Inspirado em passaportes físicos e diários de expedição vintage.
+// Design System — Memory Stamp App
+// Inspired by physical passports and vintage expedition journals
 
-// ── Paleta de cores ──────────────────────────────────────────────────────────
+// Color Palette
 export const COLORS = {
   // Paper tones
   background:               '#fef9ed',
@@ -35,24 +35,16 @@ export const COLORS = {
   // On-primary — light ink/icon colour used over primaryContainer backgrounds
   // (e.g. the book-volume cover in PassportScreen)
   onPrimary: '#d5e3ff',
-
-  // ── Aliases legados — mantidos até migração completa das telas ──────────
-  CREAM:      '#fef9ed',   // → background
-  NAVY:       '#05152b',   // → primary
-  GOLD:       '#9b4145',   // → secondary (burgundy substitui o dourado)
-  WHITE:      '#ffffff',   // → white
-  GRAY:       '#44474d',   // → onSurfaceVariant
-  LIGHT_GRAY: '#c5c6ce',   // → outlineVariant
 };
 
-// ── Tipografia ────────────────────────────────────────────────────────────────
-// LibreCaslonText — autoridade literária (headline)
-// PublicSans      — legibilidade moderna (body)
-// CourierPrime    — máquina de escrever vintage (stamps & metadata)
+// Typography
+// LibreCaslonText — literary authority (headlines)
+// PublicSans      — modern legibility (body)
+// CourierPrime    — vintage typewriter (stamps & metadata)
 export const FONTS = {
   // Headlines
   displayLg:        'LibreCaslonText_700Bold',
-  headlineMd:       'LibreCaslonText_700Bold',   // 600SemiBold inexistente no pacote
+  headlineMd:       'LibreCaslonText_700Bold',   // 600SemiBold not available in package
   headlineSm:       'LibreCaslonText_400Regular',
 
   // Body
@@ -64,12 +56,12 @@ export const FONTS = {
   labelStamp:        'CourierPrime_700Bold',
   labelStampRegular: 'CourierPrime_400Regular',
 
-  // ── Aliases legados — apontam para novas fontes ──────────────────────
-  regular: 'PublicSans_400Regular',          // era PlayfairDisplay_400Regular
-  bold:    'LibreCaslonText_700Bold',        // era PlayfairDisplay_700Bold
+  // Legacy aliases for backward compatibility
+  regular: 'PublicSans_400Regular',          // was PlayfairDisplay_400Regular
+  bold:    'LibreCaslonText_700Bold',        // was PlayfairDisplay_700Bold
 };
 
-// ── Escala tipográfica (px) ──────────────────────────────────────────────────
+// Typographic Scale (px)
 export const FONT_SIZES = {
   displayLg:  32,
   headlineMd: 24,
@@ -81,14 +73,14 @@ export const FONT_SIZES = {
   labelXs:    10,
 };
 
-// ── Espaçamento ───────────────────────────────────────────────────────────────
+// Spacing
 export const SPACING = {
   pageMargin:  20,
   elementGap:  16,
   stackTight:   8,
   stackLoose:  32,
 
-  // ── Aliases legados ──
+  // Legacy aliases
   xs:  4,
   sm:  8,
   md:  12,
@@ -97,7 +89,7 @@ export const SPACING = {
   xxl: 32,
 };
 
-// ── Border radius ─────────────────────────────────────────────────────────────
+// Border Radius
 export const RADIUS = {
   sm:   4,
   md:   8,
@@ -106,8 +98,8 @@ export const RADIUS = {
   full: 9999,
 };
 
-// ── Sombras ───────────────────────────────────────────────────────────────────
-// Sombra estilo papel sobre mesa
+// Shadows
+// Paper-on-desk style shadow
 export const SHADOW_PAPER = {
   shadowColor:   '#05152b',
   shadowOffset:  { width: 0, height: 4 },
@@ -116,7 +108,7 @@ export const SHADOW_PAPER = {
   elevation:     4,
 };
 
-// Aliases legados
+// Legacy aliases
 export const SHADOW        = SHADOW_PAPER;
 export const SHADOW_STRONG = {
   shadowColor:   '#05152b',
@@ -126,5 +118,5 @@ export const SHADOW_STRONG = {
   elevation:     8,
 };
 
-// Cor do padrão de textura de papel granulado (usar como tint em Views decorativas)
+// Grainy paper texture pattern color (use as tint in decorative Views)
 export const PAPER_PATTERN_COLOR = 'rgba(222, 218, 206, 0.4)';

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,54 +18,71 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useStamps } from '../hooks/useStamps';
 import { useUserName } from '../hooks/useUserName';
+import { useVolumes } from '../hooks/useVolumes';
 import { StampCard } from '../components/StampCard';
+import { VolumeBookCard } from '../components/VolumeBookCard';
+import { VolumeModal } from '../components/VolumeModal';
 import {
   COLORS,
   FONTS,
   FONT_SIZES,
   RADIUS,
   SHADOW_PAPER,
-  SHADOW_STRONG,
   SPACING,
 } from '../constants/theme';
-import { Stamp } from '../types';
-import { PassporteStackParamList, RootTabParamList } from '../navigation/types';
+import { Stamp, Volume } from '../types';
+import { PassportStackParamList, RootTabParamList } from '../navigation/types';
 
 type PassportNavigation = CompositeNavigationProp<
-  NativeStackNavigationProp<PassporteStackParamList, 'PassaporteHome'>,
+  NativeStackNavigationProp<PassportStackParamList, 'PassportHome'>,
   BottomTabNavigationProp<RootTabParamList>
 >;
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
+// Volume color aliases for UI elements
+const VOLUME_INK = COLORS.onPrimary; // '#d5e3ff'
 
-// Volume colour aliases — map directly to theme tokens so the palette stays in
-// one place. COLORS.primaryContainer = book face, COLORS.primary = spine edge,
-// COLORS.onPrimary = ink/icon colour on the dark cover.
-const VOLUME_BG    = COLORS.primaryContainer; // '#1b2a41'
-const VOLUME_SPINE = COLORS.primary;          // '#05152b'
-const VOLUME_INK   = COLORS.onPrimary;        // '#d5e3ff'
+// ─── AddVolumeCard ─────────────────────────────────────────────────────────────
+// Placeholder card that occupies the space for the next volume to be created.
+
+function AddVolumeCard({ onPress }: { onPress: () => void }) {
+  return (
+    <View style={styles.bookCardWrapper}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.65}>
+        <View style={styles.addVolumeCard}>
+          <View style={styles.addVolumeIcon}>
+            <Ionicons name="add" size={28} color={COLORS.outlineVariant} />
+          </View>
+          <Text style={styles.addVolumeLabel}>{'NEW\nVOLUME'}</Text>
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+
+// ─── PassportScreen ────────────────────────────────────────────────────────────
 
 export function PassportScreen() {
   const navigation = useNavigation<PassportNavigation>();
   const { stamps, loadStamps } = useStamps();
   const { userName } = useUserName();
+  const { volumes, addVolume } = useVolumes();
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const insets = useSafeAreaInsets();
 
-  // ── Valores de animação ──────────────────────────────────────────────────
-  const passportScale      = useRef(new Animated.Value(1)).current;
-  const passportTranslateX = useRef(new Animated.Value(0)).current;
-  const passportOpacity    = useRef(new Animated.Value(1)).current;
-  const contentOpacity     = useRef(new Animated.Value(0)).current;
-  // Elevação do volume ao pressionar (translateY -16px)
-  const bookLiftAnim       = useRef(new Animated.Value(0)).current;
+  // ── Animations ──────────────────────────────────────────────────────────────
+  const shelfOpacity   = useRef(new Animated.Value(1)).current;
+  const shelfScale     = useRef(new Animated.Value(1)).current;
+  const contentOpacity = useRef(new Animated.Value(0)).current;
 
-  // Recarrega stamps ao entrar em foco
+  // Reload stamps when screen comes into focus
   useFocusEffect(
     useCallback(() => { loadStamps(); }, [loadStamps]),
   );
 
-  // Controla visibilidade da tab bar: oculta no estado fechado, exibe no aberto
+  // Control tab bar visibility
   useEffect(() => {
     const parent = navigation.getParent();
     parent?.setOptions({
@@ -81,75 +97,108 @@ export function PassportScreen() {
     });
   }, [isOpen, navigation, insets.bottom]);
 
-  // ── Interação com o volume ────────────────────────────────────────────────
-
-  // Eleva o livro ao tocar (feedback visual antes de abrir)
-  const handlePressIn = () => {
-    Animated.timing(bookLiftAnim, {
-      toValue: -16,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  // ── Abrir passaporte ─────────────────────────────────────────────────────
-  const handleOpen = () => {
+  // ── Open volume ───────────────────────────────────────────────────────────
+  const handleVolumePress = (volume: Volume) => {
+    setSelectedVolume(volume);
     Animated.parallel([
-      Animated.timing(passportScale,      { toValue: 0.3,               duration: 380, useNativeDriver: true }),
-      Animated.timing(passportOpacity,    { toValue: 0,                 duration: 380, useNativeDriver: true }),
-      Animated.timing(passportTranslateX, { toValue: -SCREEN_WIDTH / 2, duration: 380, useNativeDriver: true }),
+      Animated.timing(shelfOpacity, { toValue: 0, duration: 280, useNativeDriver: true }),
+      Animated.timing(shelfScale,   { toValue: 0.94, duration: 280, useNativeDriver: true }),
     ]).start(() => {
-      bookLiftAnim.setValue(0);
       contentOpacity.setValue(0);
       setIsOpen(true);
-      Animated.timing(contentOpacity, { toValue: 1, duration: 250, useNativeDriver: true }).start();
+      Animated.timing(contentOpacity, { toValue: 1, duration: 240, useNativeDriver: true }).start();
     });
   };
 
-  // ── Fechar passaporte ────────────────────────────────────────────────────
+  // ── Close volume ──────────────────────────────────────────────────────────
   const handleClose = () => {
-    Animated.timing(contentOpacity, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
-      passportScale.setValue(1);
-      passportTranslateX.setValue(0);
-      passportOpacity.setValue(0);
-      bookLiftAnim.setValue(0);
+    Animated.timing(contentOpacity, { toValue: 0, duration: 180, useNativeDriver: true }).start(() => {
+      shelfOpacity.setValue(0);
+      shelfScale.setValue(0.94);
       setIsOpen(false);
-      Animated.timing(passportOpacity, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+      Animated.parallel([
+        Animated.timing(shelfOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.timing(shelfScale,   { toValue: 1, duration: 300, useNativeDriver: true }),
+      ]).start();
     });
   };
 
-  const handleFabPress = () => navigation.navigate('Criar');
-
+  const handleFabPress = () => navigation.navigate('Create');
   const handleStampPress = (stamp: Stamp) => navigation.navigate('StampDetail', { stamp });
 
-  const renderItem = ({ item, index }: { item: Stamp; index: number }) => (
+  // ── Stamps for selected volume ────────────────────────────────────────────
+  // The 'default' volume displays all stamps without volumeId (backwards compatible).
+  // New volumes only display stamps with matching volumeId.
+  const volumeStamps = !selectedVolume || selectedVolume.id === 'default'
+    ? stamps.filter(s => !s.volumeId || s.volumeId === 'default')
+    : stamps.filter(s => s.volumeId === selectedVolume.id);
+
+  // ── Next volume label ────────────────────────────────────────────────────
+  const nextVolumeLabel = `VOLUME ${toRoman(volumes.length + 1)}`;
+
+  // ── Create new volume ──────────────────────────────────────────────────────
+  const handleCreateVolume = async (name: string) => {
+    await addVolume(name);
+    setShowAddModal(false);
+  };
+
+  // ── Renders ────────────────────────────────────────────────────────────────
+
+  const renderStampItem = ({ item, index }: { item: Stamp; index: number }) => (
     <TouchableOpacity onPress={() => handleStampPress(item)} activeOpacity={0.85}>
       <StampCard stamp={item} index={index} />
     </TouchableOpacity>
   );
 
-  // Faixa compacta do passaporte — 120px, topo do scroll quando aberto (só leitura)
+  const renderEmptyStamps = () => (
+    <View style={styles.emptyState}>
+      <Ionicons name="book-outline" size={44} color={COLORS.outlineVariant} />
+      <Text style={styles.emptyStateText}>No stamps in this passport</Text>
+      <Text style={styles.emptyStateHint}>Tap the pencil to record your first memory.</Text>
+    </View>
+  );
+
+  // Compact strip at the top of the list when volume is open
   const renderCompactHeader = () => (
     <View style={styles.compactStrip}>
       <View style={styles.compactGlobe}>
         <Ionicons name="globe-outline" size={24} color={VOLUME_INK} />
       </View>
       <View style={styles.compactInfo}>
-        <Text style={styles.compactLabel}>PASSAPORTE DE MEMÓRIAS</Text>
+        <Text style={styles.compactLabel}>MEMORY PASSPORT</Text>
         <View style={styles.compactNameRow}>
           <Text style={styles.compactName}>{userName}</Text>
         </View>
       </View>
-      <Text style={styles.compactCount}>{stamps.length}</Text>
+      <Text style={styles.compactCount}>{volumeStamps.length}</Text>
     </View>
   );
 
-  // ── RENDER ───────────────────────────────────────────────────────────────
+  // Shelf item: real volume or add card
+  type ShelfItem = Volume | { id: '__add__' };
+
+  const renderShelfItem = ({ item, index }: { item: ShelfItem; index: number }) => {
+    if (item.id === '__add__') {
+      return <AddVolumeCard onPress={() => setShowAddModal(true)} />;
+    }
+    const vol = item as Volume;
+    return (
+      <VolumeBookCard
+        volume={vol}
+        isCurrent={index === volumes.length - 1}
+        onPress={() => handleVolumePress(vol)}
+      />
+    );
+  };
+
+  const shelfData: ShelfItem[] = [...volumes, { id: '__add__' }];
+
+  // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
     <View style={styles.screen}>
       {!isOpen ? (
 
-        /* ──────────── ESTADO FECHADO ──────────── */
+        /* ──────────── CLOSED STATE ──────────── */
         <View style={styles.closedBg}>
 
           {/* Header THE ARCHIVES */}
@@ -159,100 +208,99 @@ export function PassportScreen() {
             <View style={styles.archivesDivider} />
           </View>
 
-          {/* Área central com o volume */}
-          <View style={styles.bookSection}>
-            <Animated.View
-              style={[
-                styles.centeredContent,
-                {
-                  transform: [
-                    { scale: passportScale },
-                    { translateX: passportTranslateX },
-                  ],
-                  opacity: passportOpacity,
-                },
-              ]}
-            >
-              {/* Volume / livro */}
-              <TouchableOpacity
-                onPressIn={handlePressIn}
-                onPress={handleOpen}
-                activeOpacity={1}
-              >
-                <Animated.View
-                  style={[
-                    styles.bookVolume,
-                    { transform: [{ translateY: bookLiftAnim }] },
-                  ]}
-                >
-                  {/* Linha superior: VOLUME I */}
-                  <Text style={styles.volumeLabel}>VOLUME I</Text>
+          {/* Volume shelf */}
+          <Animated.View
+            style={[
+              styles.bookSection,
+              {
+                opacity: shelfOpacity,
+                transform: [{ scale: shelfScale }],
+              },
+            ]}
+          >
+            <FlatList
+              horizontal
+              data={shelfData}
+              keyExtractor={(item) => item.id}
+              renderItem={renderShelfItem}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.shelfContent}
+              ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
+            />
 
-                  {/* Globo em círculo central */}
-                  <View style={styles.globeCircle}>
-                    <Ionicons name="globe-outline" size={48} color={VOLUME_INK} />
-                  </View>
-
-                  {/* Rodapé: título + ano */}
-                  <View style={styles.bookFooter}>
-                    <Text style={styles.bookFooterTitle}>Passaporte</Text>
-                    <Text style={styles.bookFooterYear}>EST. 2024</Text>
-                  </View>
-                </Animated.View>
-              </TouchableOpacity>
-
-              {/* Badge "CURRENT" inclinado -2° */}
-              <View style={styles.currentBadge}>
-                <Text style={styles.currentBadgeText}>CURRENT</Text>
-              </View>
-
-              {/* Contador de selos */}
-              <Text style={styles.stampCounter}>
-                {stamps.length} selos colecionados
-              </Text>
-            </Animated.View>
-          </View>
+            <Text style={styles.shelfHint}>
+              Tap a passport to open
+            </Text>
+            <Text style={styles.stampCounter}>
+              {stamps.length} {stamps.length === 1 ? 'stamp collected' : 'stamps collected'}
+            </Text>
+          </Animated.View>
         </View>
 
       ) : (
 
-        /* ──────────── ESTADO ABERTO ──────────── */
+        /* ──────────── OPEN STATE ──────────── */
         <Animated.View style={[styles.openContainer, { opacity: contentOpacity }]}>
 
-          {/* Header fixo */}
+          {/* Fixed header */}
           <View style={[styles.openHeader, { paddingTop: insets.top + SPACING.stackTight }]}>
             <TouchableOpacity style={styles.closeBtn} onPress={handleClose} activeOpacity={0.7}>
               <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
-              <Text style={styles.closeBtnText}>Fechar</Text>
+              <Text style={styles.closeBtnText}>Close</Text>
             </TouchableOpacity>
 
-            <Text style={styles.openTitle}>Meu Passaporte</Text>
+            <Text style={styles.openTitle} numberOfLines={1}>
+              {selectedVolume?.name ?? 'My Passport'}
+            </Text>
 
-            <Text style={styles.openCounter}>{stamps.length} selos</Text>
+            <Text style={styles.openCounter}>{volumeStamps.length} stamps</Text>
           </View>
 
-          {/* Grid de stamps */}
+          {/* Stamps grid */}
           <FlatList
-            data={stamps}
+            data={volumeStamps}
             keyExtractor={(item) => item.id}
-            renderItem={renderItem}
+            renderItem={renderStampItem}
             ListHeaderComponent={renderCompactHeader}
+            ListEmptyComponent={renderEmptyStamps}
             numColumns={2}
             columnWrapperStyle={styles.row}
             contentContainerStyle={styles.list}
             showsVerticalScrollIndicator={false}
           />
 
-          {/* FAB — ícone lápis, fundo burgundy */}
+          {/* FAB — pencil icon, burgundy background */}
           <TouchableOpacity style={styles.fab} onPress={handleFabPress} activeOpacity={0.8}>
             <Ionicons name="pencil" size={24} color={COLORS.white} />
           </TouchableOpacity>
 
         </Animated.View>
       )}
+
+      {/* Modal for creating new volume */}
+      <VolumeModal
+        visible={showAddModal}
+        nextLabel={nextVolumeLabel}
+        onClose={() => setShowAddModal(false)}
+        onConfirm={handleCreateVolume}
+      />
     </View>
   );
 }
+
+// ─── Utility ───────────────────────────────────────────────────────────────────
+
+function toRoman(n: number): string {
+  const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+  const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+  let result = '';
+  for (let i = 0; i < vals.length; i++) {
+    while (n >= vals[i]) { result += syms[i]; n -= vals[i]; }
+  }
+  return result;
+}
+
+// ─── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: {
@@ -260,13 +308,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  // ── Estado fechado ──────────────────────────────────────────────────────
+  // ── Closed state ────────────────────────────────────────────────────────────
   closedBg: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
 
-  // Header "THE ARCHIVES" — topo da tela fechada
+  // Header "THE ARCHIVES"
   archivesHeader: {
     paddingHorizontal: SPACING.pageMargin,
     paddingBottom: SPACING.elementGap,
@@ -289,95 +337,75 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.outlineVariant,
   },
 
-  // Área central onde o volume fica centralizado
+  // Volume shelf
   bookSection: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
   },
-  centeredContent: {
-    alignItems: 'center',
+  shelfContent: {
+    paddingHorizontal: SPACING.pageMargin,
+    paddingVertical: 24,
+    alignItems: 'flex-end', // books aligned at bottom (shelf effect)
   },
-
-  // Volume estilo lombada de livro/passaporte
-  bookVolume: {
-    width: 192,
-    height: 256,
-    backgroundColor: VOLUME_BG,
-    borderLeftWidth: 8,
-    borderLeftColor: VOLUME_SPINE,
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
-    // Sombra pronunciada estilo livro em prateleira
-    shadowColor: VOLUME_SPINE,
-    shadowOffset: { width: 8, height: 12 },
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 12,
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 24,
-    paddingBottom: 24,
-    paddingHorizontal: 16,
-  },
-  volumeLabel: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 10,
-    color: VOLUME_INK,
-    letterSpacing: 4,
-    opacity: 0.8,
-  },
-  globeCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    borderWidth: 1.5,
-    borderColor: 'rgba(213,227,255,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bookFooter: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  bookFooterTitle: {
-    fontFamily: FONTS.headlineSm,
-    fontSize: FONT_SIZES.headlineSm,
-    color: VOLUME_INK,
-    letterSpacing: 1,
-  },
-  bookFooterYear: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 10,
-    color: VOLUME_INK,
-    letterSpacing: 2,
-    opacity: 0.6,
-  },
-
-  // Badge "CURRENT" inclinado -2 graus
-  currentBadge: {
-    marginTop: 20,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: 'rgba(123,152,135,0.4)',
-    borderRadius: RADIUS.sm,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    transform: [{ rotate: '-2deg' }],
-  },
-  currentBadgeText: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelStamp,
-    color: '#7b9887',
-    letterSpacing: 2,
+  shelfHint: {
+    fontFamily: FONTS.bodyMd,
+    fontSize: FONT_SIZES.labelCaps,
+    color: COLORS.onSurfaceVariant,
+    textAlign: 'center',
+    marginTop: 12,
+    opacity: 0.7,
   },
   stampCounter: {
     fontFamily: FONTS.bodyMd,
     fontSize: FONT_SIZES.labelCaps,
     color: COLORS.onSurfaceVariant,
+    textAlign: 'center',
+    marginTop: 4,
+    marginBottom: 8,
   },
 
-  // ── Estado aberto ────────────────────────────────────────────────────────
+  // Wrapper for card (includes badge below the book)
+  bookCardWrapper: {
+    alignItems: 'center',
+  },
+
+  // Placeholder card to add new volume
+  addVolumeCard: {
+    width: 150,
+    height: 200,
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderLeftWidth: 6,
+    borderLeftColor: COLORS.outlineVariant,
+    borderTopRightRadius: 8,
+    borderBottomRightRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 4, height: 6 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  addVolumeIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    borderColor: COLORS.outlineVariant,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addVolumeLabel: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: FONT_SIZES.labelXs,
+    color: COLORS.outlineVariant,
+    letterSpacing: 2,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+
+  // ── Open state ──────────────────────────────────────────────────────────────
   openContainer: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -415,7 +443,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // Faixa compacta do passaporte (120px) — ListHeaderComponent
+  // Compact strip — ListHeaderComponent for stamps grid
   compactStrip: {
     height: 120,
     backgroundColor: COLORS.primaryContainer,
@@ -456,7 +484,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: VOLUME_INK,
   },
-  // Contador de selos no canto direito da faixa
   compactCount: {
     fontFamily: FONTS.labelStamp,
     fontSize: 28,
@@ -464,7 +491,27 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
 
-  // Grid — padding e gap alinhados com stampSize = (screenWidth - 52) / 2
+  // Empty state (volume with no stamps)
+  emptyState: {
+    alignItems: 'center',
+    paddingTop: 48,
+    paddingHorizontal: SPACING.pageMargin,
+    gap: 10,
+  },
+  emptyStateText: {
+    fontFamily: FONTS.headlineSm,
+    fontSize: FONT_SIZES.bodyMd,
+    color: COLORS.onSurfaceVariant,
+    textAlign: 'center',
+  },
+  emptyStateHint: {
+    fontFamily: FONTS.bodyMd,
+    fontSize: FONT_SIZES.labelCaps,
+    color: COLORS.outlineVariant,
+    textAlign: 'center',
+  },
+
+  // Stamps grid
   list: {
     paddingHorizontal: 20,
     paddingBottom: 96,
@@ -475,7 +522,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // FAB — lápis burgund
+  // FAB — pencil burgundy
   fab: {
     position: 'absolute',
     bottom: 32,
@@ -487,6 +534,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 999,
-    ...SHADOW_STRONG,
+    ...SHADOW_PAPER,
   },
 });

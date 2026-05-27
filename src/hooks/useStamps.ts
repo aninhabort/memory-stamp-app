@@ -1,8 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stamp } from '../types';
-
-const STORAGE_KEY = '@memory_stamp_app:stamps';
+import { StorageService } from '../services/storage';
 
 const SAMPLE_STAMPS: Stamp[] = [
   {
@@ -82,7 +80,7 @@ const SAMPLE_STAMPS: Stamp[] = [
   },
 ];
 
-// Mapa de emojis legados → nomes Ionicons equivalentes
+// Legacy emoji to Ionicons name mapping
 const EMOJI_TO_IONICON: Record<string, string> = {
   '🌍': 'globe-outline',
   '🗼': 'flag-outline',
@@ -106,7 +104,7 @@ function migrateIcon(icon: string): string {
   return EMOJI_TO_IONICON[icon] ?? icon;
 }
 
-// Migra stamp com photo (string) para photos (array) se ainda não foi migrado
+// Migrate stamp with photo (string) to photos (array) if not yet migrated
 function migratePhotos(s: Stamp): Stamp {
   if (!s.photos) {
     return { ...s, photos: s.photo ? [s.photo] : [] };
@@ -125,10 +123,9 @@ export function useStamps() {
 
   const loadStamps = useCallback(async () => {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored !== null) {
-        const parsed: Stamp[] = JSON.parse(stored);
-        // Migra ícones emoji → Ionicons e photo → photos
+      const parsed = await StorageService.getStamps();
+      if (parsed !== null) {
+        // Migrate emoji icons → Ionicons and photo → photos
         const migrated = parsed
           .map((s) => ({ ...s, icon: migrateIcon(s.icon) }))
           .map(migratePhotos);
@@ -136,15 +133,15 @@ export function useStamps() {
           (s, i) => s.icon !== parsed[i].icon || !parsed[i].photos,
         );
         if (hadMigration) {
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+          await StorageService.setStamps(migrated);
         }
         setStamps(migrated);
       } else {
-        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(SAMPLE_STAMPS));
+        await StorageService.setStamps(SAMPLE_STAMPS);
         setStamps(SAMPLE_STAMPS);
       }
     } catch (error) {
-      console.error('Erro ao carregar stamps:', error);
+      console.error('Error loading stamps:', error);
     } finally {
       setLoading(false);
     }
@@ -158,20 +155,20 @@ export function useStamps() {
     };
     const updated = [...stampsRef.current, stamp];
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      await StorageService.setStamps(updated);
       setStamps(updated);
     } catch (error) {
-      console.error('Erro ao adicionar stamp:', error);
+      console.error('Error adding stamp:', error);
     }
   }, []);
 
   const deleteStamp = useCallback(async (id: string) => {
     const updated = stampsRef.current.filter((s) => s.id !== id);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      await StorageService.setStamps(updated);
       setStamps(updated);
     } catch (error) {
-      console.error('Erro ao remover stamp:', error);
+      console.error('Error deleting stamp:', error);
     }
   }, []);
 

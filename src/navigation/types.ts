@@ -1,27 +1,27 @@
 import { Stamp } from '../types';
 
-// Abas principais
+// Main tabs
 export type RootTabParamList = {
-  Passaporte: undefined;
-  Buscar: undefined;
-  Criar: undefined;
-  'Coleção': undefined;
+  Passport: undefined;
+  Search: undefined;
+  Create: undefined;
+  Collection: undefined;
 };
 
-// Stack interno da aba Passaporte
-export type PassporteStackParamList = {
-  PassaporteHome: undefined;
+// Passport tab stack
+export type PassportStackParamList = {
+  PassportHome: undefined;
   StampDetail: { stamp: Stamp };
 };
 
-// Stack interno da aba Coleção
-export type ColeçãoStackParamList = {
-  ColeçãoHome: undefined;
+// Collection tab stack
+export type CollectionStackParamList = {
+  CollectionHome: undefined;
   StampDetail: { stamp: Stamp };
 };
 
-// Stack interno da aba Buscar
-export type BuscarStackParamList = {
-  BuscarHome: undefined;
+// Search tab stack
+export type SearchStackParamList = {
+  SearchHome: undefined;
   StampDetail: { stamp: Stamp };
 };

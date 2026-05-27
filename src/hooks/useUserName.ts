@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StorageService } from '../services/storage';
 
-const USER_NAME_KEY = '@memory_stamp_app:userName';
-const DEFAULT_NAME = 'Viajante';
+const DEFAULT_NAME = 'Traveler';
 
 export function useUserName() {
   const [userName, setUserName] = useState(DEFAULT_NAME);
 
   useEffect(() => {
-    AsyncStorage.getItem(USER_NAME_KEY).then((stored) => {
+    StorageService.getUserName().then((stored) => {
       if (stored) setUserName(stored);
     }).catch(() => {});
   }, []);
@@ -16,10 +15,10 @@ export function useUserName() {
   const updateUserName = async (name: string) => {
     const trimmed = name.trim() || DEFAULT_NAME;
     try {
-      await AsyncStorage.setItem(USER_NAME_KEY, trimmed);
+      await StorageService.setUserName(trimmed);
       setUserName(trimmed);
     } catch (e) {
-      console.error('Erro ao salvar nome do usuário:', e);
+      console.error('Error saving user name:', e);
     }
   };
 
