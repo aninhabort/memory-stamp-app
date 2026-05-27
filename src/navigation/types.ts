@@ -18,6 +18,7 @@ export type PassportStackParamList = {
 export type CollectionStackParamList = {
   CollectionHome: undefined;
   StampDetail: { stamp: Stamp };
+  Settings: undefined;
 };
 
 // Search tab stack

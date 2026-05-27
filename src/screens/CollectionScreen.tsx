@@ -151,6 +151,15 @@ export function CollectionScreen() {
           <Text style={styles.profileFieldLabel}>DOCUMENT NO.</Text>
           <Text style={styles.profileDocNo}>{docNo}</Text>
         </View>
+
+        {/* Settings button */}
+        <TouchableOpacity
+          style={styles.settingsBtn}
+          onPress={() => navigation.navigate('Settings')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="settings-outline" size={20} color={COLORS.onSurfaceVariant} />
+        </TouchableOpacity>
       </View>
 
       {/* Barra de progresso "X% EXPLORED" */}
@@ -299,6 +308,14 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.labelStamp,
     color: COLORS.onSurface,
     letterSpacing: 0.5,
+  },
+  settingsBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `${COLORS.onSurface}08`,
   },
 
   // Barra de progresso

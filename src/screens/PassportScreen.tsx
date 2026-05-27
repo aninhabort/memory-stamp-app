@@ -182,10 +182,16 @@ export function PassportScreen() {
       return <AddVolumeCard onPress={() => setShowAddModal(true)} />;
     }
     const vol = item as Volume;
+    // Calculate stamp count for this volume
+    const stampCount = vol.id === 'default'
+      ? stamps.filter(s => !s.volumeId || s.volumeId === 'default').length
+      : stamps.filter(s => s.volumeId === vol.id).length;
+
     return (
       <VolumeBookCard
         volume={vol}
         isCurrent={index === volumes.length - 1}
+        stampCount={stampCount}
         onPress={() => handleVolumePress(vol)}
       />
     );
@@ -218,6 +224,14 @@ export function PassportScreen() {
               },
             ]}
           >
+            <Text style={styles.stampCounter}>
+              {stamps.length} {stamps.length === 1 ? 'stamp collected' : 'stamps collected'}
+            </Text>
+
+            <Text style={styles.shelfHint}>
+              Tap a passport to open
+            </Text>
+
             <FlatList
               horizontal
               data={shelfData}
@@ -227,13 +241,6 @@ export function PassportScreen() {
               contentContainerStyle={styles.shelfContent}
               ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
             />
-
-            <Text style={styles.shelfHint}>
-              Tap a passport to open
-            </Text>
-            <Text style={styles.stampCounter}>
-              {stamps.length} {stamps.length === 1 ? 'stamp collected' : 'stamps collected'}
-            </Text>
           </Animated.View>
         </View>
 
@@ -339,20 +346,19 @@ const styles = StyleSheet.create({
 
   // Volume shelf
   bookSection: {
-    flex: 1,
-    justifyContent: 'center',
+    flex: 0.8,
+    alignItems: 'center',
   },
   shelfContent: {
     paddingHorizontal: SPACING.pageMargin,
-    paddingVertical: 24,
-    alignItems: 'flex-end', // books aligned at bottom (shelf effect)
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   shelfHint: {
     fontFamily: FONTS.bodyMd,
     fontSize: FONT_SIZES.labelCaps,
     color: COLORS.onSurfaceVariant,
     textAlign: 'center',
-    marginTop: 12,
     opacity: 0.7,
   },
   stampCounter: {
@@ -360,7 +366,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.labelCaps,
     color: COLORS.onSurfaceVariant,
     textAlign: 'center',
-    marginTop: 4,
     marginBottom: 8,
   },
 
@@ -371,8 +376,8 @@ const styles = StyleSheet.create({
 
   // Placeholder card to add new volume
   addVolumeCard: {
-    width: 150,
-    height: 200,
+    width: 180,
+    height: 240,
     backgroundColor: COLORS.surfaceContainerLow,
     borderLeftWidth: 6,
     borderLeftColor: COLORS.outlineVariant,

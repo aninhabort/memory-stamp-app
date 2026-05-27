@@ -25,6 +25,7 @@ import { CreateStampScreen } from './src/screens/CreateStampScreen';
 import { CollectionScreen }  from './src/screens/CollectionScreen';
 import { SearchScreen }      from './src/screens/SearchScreen';
 import { StampDetailScreen } from './src/screens/StampDetailScreen';
+import { SettingsScreen }    from './src/screens/SettingsScreen';
 import { VintageTabBar } from './src/components/VintageTabBar';
 import { COLORS } from './src/constants/theme';
 import {
@@ -74,6 +75,11 @@ function CollectionNavigator() {
       <CollectionStack.Screen
         name="StampDetail"
         component={StampDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CollectionStack.Screen
+        name="Settings"
+        component={SettingsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </CollectionStack.Navigator>

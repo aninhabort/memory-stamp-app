@@ -18,6 +18,7 @@ import {
 interface VolumeBookCardProps {
   volume: Volume;
   isCurrent: boolean;
+  stampCount: number;
   onPress: () => void;
 }
 
@@ -30,7 +31,7 @@ const VOLUME_INK = COLORS.onPrimary; // '#d5e3ff'
  * VolumeBookCard — Card for an existing volume on the shelf.
  * Each instance controls its own lift animation (bookLiftAnim) to avoid shared state.
  */
-export function VolumeBookCard({ volume, isCurrent, onPress }: VolumeBookCardProps) {
+export function VolumeBookCard({ volume, isCurrent, stampCount, onPress }: VolumeBookCardProps) {
   const bookLiftAnim = useRef(new Animated.Value(0)).current;
 
   const handlePressIn = () => {
@@ -63,12 +64,17 @@ export function VolumeBookCard({ volume, isCurrent, onPress }: VolumeBookCardPro
             { transform: [{ translateY: bookLiftAnim }] },
           ]}
         >
+          {/* Stamp count badge */}
+          <View style={styles.stampCountBadge}>
+            <Text style={styles.stampCountText}>{stampCount}</Text>
+          </View>
+
           {/* Top line: VOLUME I */}
           <Text style={styles.volumeLabel}>{volume.volumeLabel}</Text>
 
           {/* Central globe in circle */}
           <View style={styles.globeCircle}>
-            <Ionicons name="globe-outline" size={40} color={VOLUME_INK} />
+            <Ionicons name="globe-outline" size={48} color={VOLUME_INK} />
           </View>
 
           {/* Footer: title + year */}
@@ -97,8 +103,8 @@ const styles = StyleSheet.create({
 
   // Volume styled as book spine/passport
   bookVolume: {
-    width: 150,
-    height: 200,
+    width: 180,
+    height: 240,
     backgroundColor: VOLUME_BG,
     borderLeftWidth: 8,
     borderLeftColor: VOLUME_SPINE,
@@ -111,21 +117,21 @@ const styles = StyleSheet.create({
     elevation: 12,
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 20,
-    paddingBottom: 20,
-    paddingHorizontal: 12,
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 16,
   },
   volumeLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 10,
     color: VOLUME_INK,
     letterSpacing: 4,
     opacity: 0.8,
   },
   globeCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 76,
+    height: 76,
+    borderRadius: 38,
     borderWidth: 1.5,
     borderColor: 'rgba(213,227,255,0.3)',
     alignItems: 'center',
@@ -137,16 +143,38 @@ const styles = StyleSheet.create({
   },
   bookFooterTitle: {
     fontFamily: FONTS.headlineSm,
-    fontSize: FONT_SIZES.labelStamp,
+    fontSize: 13,
     color: VOLUME_INK,
     letterSpacing: 1,
   },
   bookFooterYear: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 10,
     color: VOLUME_INK,
     letterSpacing: 2,
     opacity: 0.6,
+  },
+
+  // Stamp count badge
+  stampCountBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    backgroundColor: 'rgba(213,227,255,0.2)',
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(213,227,255,0.3)',
+  },
+  stampCountText: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 11,
+    color: VOLUME_INK,
+    letterSpacing: 1,
   },
 
   // "CURRENT" badge on the most recent volume

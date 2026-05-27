@@ -17,7 +17,7 @@ const TAB_CONFIG: Record<
   Passport:   { label: 'JOURNAL',  icon: 'book-outline',    iconActive: 'book' },
   Search:     { label: 'SEARCH',   icon: 'search-outline',  iconActive: 'search' },
   Create:     { label: 'STAMP',    icon: 'pencil-outline',  iconActive: 'pencil' },
-  Collection: { label: 'VOLUMES',  icon: 'albums-outline',  iconActive: 'albums' },
+  Collection: { label: 'PROFILE',  icon: 'person-outline',  iconActive: 'person' },
 };
 
 /**
