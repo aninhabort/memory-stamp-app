@@ -49,13 +49,16 @@ type GridCell = Stamp | { type: 'add' };
 export function CollectionScreen() {
   const navigation   = useNavigation<CollectionNavigation>();
   const { stamps, loadStamps } = useStamps();
-  const { userName } = useUserName();
+  const { userName, reloadUserName } = useUserName();
   const insets       = useSafeAreaInsets();
 
   const [query, setQuery] = useState('');
   const [sortBy, setSortBy]     = useState<'date' | 'name'>('date');
 
-  useFocusEffect(useCallback(() => { loadStamps(); }, [loadStamps]));
+  useFocusEffect(useCallback(() => {
+    loadStamps();
+    reloadUserName();
+  }, [loadStamps, reloadUserName]));
 
   // ── Dados calculados ──────────────────────────────────────────────────────
 

@@ -52,7 +52,7 @@ export function SettingsScreen() {
   const handleExportData = () => {
     Alert.alert(
       'Export Data',
-      `Export ${stamps.length} stamps to JSON file?`,
+      `Export ${stamps.length} stamps to TXT file?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -82,6 +82,22 @@ export function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleContactSupport = () => {
+    navigation.navigate('ContactSupport');
+  };
+
+  const handleFAQ = () => {
+    navigation.navigate('FAQ');
+  };
+
+  const handlePrivacyPolicy = () => {
+    navigation.navigate('PrivacyPolicy');
+  };
+
+  const handleTermsOfUse = () => {
+    navigation.navigate('TermsOfUse');
   };
 
   return (
@@ -177,6 +193,9 @@ export function SettingsScreen() {
               <View style={styles.settingLeft}>
                 <Ionicons name="download-outline" size={20} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Export Data</Text>
+                <View style={styles.comingSoonBadge}>
+                  <Text style={styles.comingSoonText}>SOON</Text>
+                </View>
               </View>
               <Ionicons name="chevron-forward" size={16} color={COLORS.outline} />
             </TouchableOpacity>
@@ -193,6 +212,69 @@ export function SettingsScreen() {
                 <Text style={[styles.settingLabel, { color: '#c44e3f' }]}>
                   Clear All Data
                 </Text>
+                <View style={styles.comingSoonBadge}>
+                  <Text style={styles.comingSoonText}>SOON</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.outline} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Help & Support Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>HELP & SUPPORT</Text>
+          <View style={styles.settingCard}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleContactSupport}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="mail-outline" size={20} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Contact Support</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleFAQ}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="help-circle-outline" size={20} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>FAQ</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handlePrivacyPolicy}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="shield-outline" size={20} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Privacy Policy</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleTermsOfUse}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="document-text-outline" size={20} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Terms of Use</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={COLORS.outline} />
             </TouchableOpacity>
@@ -341,6 +423,19 @@ const styles = StyleSheet.create({
   statValue: {
     fontFamily: FONTS.labelStamp,
     fontSize: 16,
+    color: COLORS.secondary,
+    letterSpacing: 1,
+  },
+  comingSoonBadge: {
+    backgroundColor: `${COLORS.secondary}20`,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: RADIUS.sm,
+    marginLeft: 8,
+  },
+  comingSoonText: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 8,
     color: COLORS.secondary,
     letterSpacing: 1,
   },

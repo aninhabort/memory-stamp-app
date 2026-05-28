@@ -19,6 +19,10 @@ export type CollectionStackParamList = {
   CollectionHome: undefined;
   StampDetail: { stamp: Stamp };
   Settings: undefined;
+  ContactSupport: undefined;
+  FAQ: undefined;
+  PrivacyPolicy: undefined;
+  TermsOfUse: undefined;
 };
 
 // Search tab stack

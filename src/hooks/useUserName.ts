@@ -6,13 +6,20 @@ const DEFAULT_NAME = 'Traveler';
 export function useUserName() {
   const [userName, setUserName] = useState(DEFAULT_NAME);
 
-  useEffect(() => {
-    StorageService.getUserName().then((stored) => {
+  const loadUserName = async () => {
+    try {
+      const stored = await StorageService.getUserName();
       if (stored) setUserName(stored);
-    }).catch(() => {});
+    } catch (e) {
+      console.error('Error loading user name:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadUserName();
   }, []);
 
-  const updateUserName = async (name: string) => {
+  const setUserNameAsync = async (name: string) => {
     const trimmed = name.trim() || DEFAULT_NAME;
     try {
       await StorageService.setUserName(trimmed);
@@ -22,5 +29,5 @@ export function useUserName() {
     }
   };
 
-  return { userName, updateUserName };
+  return { userName, setUserName: setUserNameAsync, reloadUserName: loadUserName };
 }

@@ -20,12 +20,16 @@ import {
   PublicSans_400Regular,
   PublicSans_600SemiBold,
 } from '@expo-google-fonts/public-sans';
-import { PassportScreen }    from './src/screens/PassportScreen';
-import { CreateStampScreen } from './src/screens/CreateStampScreen';
-import { CollectionScreen }  from './src/screens/CollectionScreen';
-import { SearchScreen }      from './src/screens/SearchScreen';
-import { StampDetailScreen } from './src/screens/StampDetailScreen';
-import { SettingsScreen }    from './src/screens/SettingsScreen';
+import { PassportScreen }       from './src/screens/PassportScreen';
+import { CreateStampScreen }    from './src/screens/CreateStampScreen';
+import { CollectionScreen }     from './src/screens/CollectionScreen';
+import { SearchScreen }         from './src/screens/SearchScreen';
+import { StampDetailScreen }    from './src/screens/StampDetailScreen';
+import { SettingsScreen }       from './src/screens/SettingsScreen';
+import { ContactSupportScreen } from './src/screens/ContactSupportScreen';
+import { FAQScreen }            from './src/screens/FAQScreen';
+import { PrivacyPolicyScreen }  from './src/screens/PrivacyPolicyScreen';
+import { TermsOfUseScreen }     from './src/screens/TermsOfUseScreen';
 import { VintageTabBar } from './src/components/VintageTabBar';
 import { COLORS } from './src/constants/theme';
 import {
@@ -80,6 +84,26 @@ function CollectionNavigator() {
       <CollectionStack.Screen
         name="Settings"
         component={SettingsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CollectionStack.Screen
+        name="ContactSupport"
+        component={ContactSupportScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CollectionStack.Screen
+        name="FAQ"
+        component={FAQScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CollectionStack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CollectionStack.Screen
+        name="TermsOfUse"
+        component={TermsOfUseScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </CollectionStack.Navigator>

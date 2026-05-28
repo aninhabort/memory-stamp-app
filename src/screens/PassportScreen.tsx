@@ -65,7 +65,7 @@ function AddVolumeCard({ onPress }: { onPress: () => void }) {
 export function PassportScreen() {
   const navigation = useNavigation<PassportNavigation>();
   const { stamps, loadStamps } = useStamps();
-  const { userName } = useUserName();
+  const { userName, reloadUserName } = useUserName();
   const { volumes, addVolume } = useVolumes();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null);
@@ -77,9 +77,12 @@ export function PassportScreen() {
   const shelfScale     = useRef(new Animated.Value(1)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
 
-  // Reload stamps when screen comes into focus
+  // Reload stamps and userName when screen comes into focus
   useFocusEffect(
-    useCallback(() => { loadStamps(); }, [loadStamps]),
+    useCallback(() => {
+      loadStamps();
+      reloadUserName();
+    }, [loadStamps, reloadUserName]),
   );
 
   // Control tab bar visibility
