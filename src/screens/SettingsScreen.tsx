@@ -122,7 +122,7 @@ export function SettingsScreen() {
       >
         {/* Profile Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>BEARER INFORMATION</Text>
+          <Text style={styles.sectionLabel}>PROFILE INFORMATION</Text>
           <View style={styles.settingCard}>
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>

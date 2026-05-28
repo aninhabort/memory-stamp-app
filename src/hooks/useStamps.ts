@@ -137,8 +137,9 @@ export function useStamps() {
         }
         setStamps(migrated);
       } else {
-        await StorageService.setStamps(SAMPLE_STAMPS);
-        setStamps(SAMPLE_STAMPS);
+        // Start with empty stamps for new users
+        await StorageService.setStamps([]);
+        setStamps([]);
       }
     } catch (error) {
       console.error('Error loading stamps:', error);

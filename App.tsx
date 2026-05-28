@@ -1,5 +1,5 @@
 import React from 'react';
-import { View } from 'react-native';
+import { View, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -30,7 +30,11 @@ import { ContactSupportScreen } from './src/screens/ContactSupportScreen';
 import { FAQScreen }            from './src/screens/FAQScreen';
 import { PrivacyPolicyScreen }  from './src/screens/PrivacyPolicyScreen';
 import { TermsOfUseScreen }     from './src/screens/TermsOfUseScreen';
+import { LoadingScreen }        from './src/screens/LoadingScreen';
+import { LoginScreen }          from './src/screens/LoginScreen';
+import { SignUpScreen }         from './src/screens/SignUpScreen';
 import { VintageTabBar } from './src/components/VintageTabBar';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { COLORS } from './src/constants/theme';
 import {
   RootTabParamList,
@@ -113,6 +117,8 @@ function CollectionNavigator() {
 // Main app
 
 function AppContent() {
+  const { isAuthenticated, isLoading, hasAccount, login, signup } = useAuth();
+  const [showSignUp, setShowSignUp] = React.useState<boolean | null>(null);
   const [fontsLoaded] = useFonts({
     LibreCaslonText_400Regular,
     LibreCaslonText_700Bold,
@@ -122,10 +128,46 @@ function AppContent() {
     PublicSans_600SemiBold,
   });
 
-  if (!fontsLoaded) {
-    return <View style={{ flex: 1, backgroundColor: COLORS.background }} />;
+  // Show loading screen while fonts are loading or checking auth
+  if (!fontsLoaded || isLoading) {
+    return <LoadingScreen />;
   }
 
+  // Show authentication screens if not authenticated
+  if (!isAuthenticated) {
+    // Determine which screen to show
+    // If user explicitly navigated, use their choice
+    // Otherwise, show SignUp if no account, Login if account exists
+    const shouldShowSignUp = showSignUp !== null ? showSignUp : !hasAccount;
+
+    if (shouldShowSignUp) {
+      return (
+        <SignUpScreen
+          onSignUp={signup}
+          onNavigateToLogin={() => setShowSignUp(false)}
+        />
+      );
+    }
+
+    // Show login screen
+    return (
+      <LoginScreen
+        onLogin={async (email, password) => {
+          try {
+            await login(email, password);
+          } catch (error) {
+            Alert.alert(
+              'Login Failed',
+              error instanceof Error ? error.message : 'Invalid email or password'
+            );
+          }
+        }}
+        onNavigateToSignUp={() => setShowSignUp(true)}
+      />
+    );
+  }
+
+  // Show main app if authenticated
   return (
     <NavigationContainer>
       <Tab.Navigator
@@ -145,7 +187,9 @@ function AppContent() {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

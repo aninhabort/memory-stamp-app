@@ -145,7 +145,7 @@ export function CollectionScreen() {
 
         {/* Nome e documento */}
         <View style={styles.profileInfo}>
-          <Text style={styles.profileFieldLabel}>BEARER NAME</Text>
+          <Text style={styles.profileFieldLabel}>NAME</Text>
           <Text style={styles.profileName}>{userName || 'Viajante'}</Text>
         </View>
 
