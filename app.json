@@ -24,7 +24,12 @@
         "backgroundColor": "#ffffff"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE"]
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.aninhabort.memorystampapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -38,6 +43,11 @@
           "photosPermission": "Usado para escolher fotos das suas memórias"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a0301f5e-964e-4236-8d7c-1e956c0a30de"
+      }
+    }
   }
 }
