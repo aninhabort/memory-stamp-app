@@ -14,9 +14,9 @@ const TAB_CONFIG: Record<
     iconActive: React.ComponentProps<typeof Ionicons>['name'];
   }
 > = {
-  Passport:   { label: 'JOURNAL',  icon: 'book-outline',    iconActive: 'book' },
+  Passport:   { label: 'HOME',     icon: 'book-outline',    iconActive: 'book' },
   Search:     { label: 'SEARCH',   icon: 'search-outline',  iconActive: 'search' },
-  Create:     { label: 'STAMP',    icon: 'pencil-outline',  iconActive: 'pencil' },
+  Create:     { label: 'ADD',      icon: 'pencil-outline',  iconActive: 'pencil' },
   Collection: { label: 'PROFILE',  icon: 'person-outline',  iconActive: 'person' },
 };
 

@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { initializeFirestore } from 'firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
@@ -16,6 +17,14 @@ const app = initializeApp(firebaseConfig);
 
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
+});
+
+// React Native's networking layer doesn't reliably support the gRPC stream
+// transport Firestore uses by default, which can surface as "client is
+// offline" errors even with a working connection. Long polling works
+// reliably in this environment.
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
 });
 
 export default app;

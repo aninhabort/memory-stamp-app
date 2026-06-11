@@ -22,7 +22,7 @@ import type { Stamp } from '../types';
 import { formatDecoDate } from '../utils/stampUtils';
 import { PhotoSelector } from './PhotoSelector';
 import { CategoryPicker } from './CategoryPicker';
-import { ColorPicker } from './ColorPicker';
+import { ColorPicker, PRESET_COLORS } from './ColorPicker';
 
 const ICON_GAP = 10;
 
@@ -53,31 +53,46 @@ export interface StampFormData {
 interface StampFormProps {
   onSubmit: (data: StampFormData) => Promise<void>;
   onDiscard: () => void;
+  /** Pre-fills the form for editing an existing stamp. */
+  initialData?: StampFormData;
+  /** Hint text above the stamp button. */
+  pressHint?: string;
+  /** Two-line label on the stamp button. */
+  actionLabel?: [string, string];
 }
 
 /**
- * Form component for creating a new stamp entry.
+ * Form component for creating or editing a stamp entry.
  * Handles all form state, photo selection, and user input.
  */
-export function StampForm({ onSubmit, onDiscard }: StampFormProps) {
+export function StampForm({
+  onSubmit,
+  onDiscard,
+  initialData,
+  pressHint = 'Press firmly to certify entry',
+  actionLabel = ['STAMP', 'PAGE'],
+}: StampFormProps) {
   // Computed once per mount so they always reflect the day the form opens.
   const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
   const decoDate = useMemo(() => formatDecoDate(new Date()), []);
 
-  const [title,    setTitle]   = useState('');
-  const [place,    setPlace]   = useState('');
-  const [country,  setCountry] = useState('');
-  const [date,     setDate]    = useState(todayISO);
-  const [note,     setNote]    = useState('');
-  const [photos,   setPhotos]  = useState<string[]>([]);
+  const initialColorIsCustom = !!initialData && !PRESET_COLORS.includes(initialData.color);
+  const initialIconIsCustom  = !!initialData && !ICONS.includes(initialData.icon);
+
+  const [title,    setTitle]   = useState(initialData?.title ?? '');
+  const [place,    setPlace]   = useState(initialData?.place ?? '');
+  const [country,  setCountry] = useState(initialData?.country ?? '');
+  const [date,     setDate]    = useState(initialData?.date ?? todayISO);
+  const [note,     setNote]    = useState(initialData?.note ?? '');
+  const [photos,   setPhotos]  = useState<string[]>(initialData?.photos ?? []);
   const [photoScrollIndex, setPhotoScrollIndex] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState<Stamp['category']>('viagem');
-  const [selectedColor,    setSelectedColor]    = useState(COLOR_PALETTE[0]);
-  const [customColor,      setCustomColor]      = useState('');
-  const [isCustomColorMode, setIsCustomColorMode] = useState(false);
-  const [selectedIcon,     setSelectedIcon]     = useState(ICONS[0]);
-  const [customEmoji,      setCustomEmoji]      = useState('');
-  const [isCustomEmojiMode, setIsCustomEmojiMode] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Stamp['category']>(initialData?.category ?? 'viagem');
+  const [selectedColor,    setSelectedColor]    = useState(initialData?.color ?? COLOR_PALETTE[0]);
+  const [customColor,      setCustomColor]      = useState(initialColorIsCustom ? initialData!.color : '');
+  const [isCustomColorMode, setIsCustomColorMode] = useState(initialColorIsCustom);
+  const [selectedIcon,     setSelectedIcon]     = useState(initialIconIsCustom ? ICONS[0] : (initialData?.icon ?? ICONS[0]));
+  const [customEmoji,      setCustomEmoji]      = useState(initialIconIsCustom ? initialData!.icon : '');
+  const [isCustomEmojiMode, setIsCustomEmojiMode] = useState(initialIconIsCustom);
   const [isSaving, setIsSaving] = useState(false);
 
   const stampScaleAnim = useRef(new Animated.Value(1)).current;
@@ -148,7 +163,9 @@ export function StampForm({ onSubmit, onDiscard }: StampFormProps) {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      // Haptics can fail/reject on simulators without a haptic engine — never
+      // let that block the actual save + navigation.
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
       await onSubmit({
         title:    title.trim(),
         place:    place.trim(),
@@ -160,8 +177,8 @@ export function StampForm({ onSubmit, onDiscard }: StampFormProps) {
         note:     note.trim() || undefined,
         photos,
       });
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      resetForm();
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      if (!initialData) resetForm();
     } finally {
       setIsSaving(false);
     }
@@ -352,7 +369,7 @@ export function StampForm({ onSubmit, onDiscard }: StampFormProps) {
       </View>
 
       <View style={styles.actionArea}>
-        <Text style={styles.pressHint}>Press firmly to certify entry</Text>
+        <Text style={styles.pressHint}>{pressHint}</Text>
 
         <TouchableOpacity
           onPressIn={handleStampPressIn}
@@ -373,8 +390,8 @@ export function StampForm({ onSubmit, onDiscard }: StampFormProps) {
               size={40}
               color={COLORS.white}
             />
-            <Text style={styles.stampBtnLabel}>STAMP</Text>
-            <Text style={styles.stampBtnSublabel}>PAGE</Text>
+            <Text style={styles.stampBtnLabel}>{actionLabel[0]}</Text>
+            <Text style={styles.stampBtnSublabel}>{actionLabel[1]}</Text>
           </Animated.View>
         </TouchableOpacity>
 

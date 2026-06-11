@@ -21,6 +21,7 @@ import {
   resolveCoverPhoto,
   resolveStampIcon,
 } from '../utils/stampUtils';
+import { PolaroidPhoto } from './PolaroidPhoto';
 
 interface StampCardProps {
   stamp: Stamp;
@@ -32,10 +33,10 @@ const SCREEN_WIDTH = Dimensions.get('window').width;
 
 // Tamanho da célula no grid de 2 colunas (gap 12 entre colunas, pageMargin 20 de cada lado)
 export const STAMP_SIZE  = Math.floor((SCREEN_WIDTH - 52) / 2);
-// Stamp circulares e retangulares ocupam 75% da célula
+// Stamp circulares ocupam 75% da célula
 export const CIRCLE_SIZE = Math.floor(STAMP_SIZE * 0.75);
-const RECT_W = STAMP_SIZE - 16;
-const RECT_H = Math.floor(STAMP_SIZE * 0.75);
+// Selo (sem foto) — menor que a célula, com a localização abaixo
+const SEAL_SIZE = STAMP_SIZE - 40;
 
 // Date formatting, icon resolution, rotation, and cover-photo helpers are
 // provided by the shared stampUtils module (imported above).
@@ -92,39 +93,57 @@ export function StampCard({ stamp, variant = 'grid', index = 0 }: StampCardProps
     );
   }
 
-  // ── Grid — Circular para viagem ──────────────────────────────────────────
-  if (stamp.category === 'viagem') {
+  // ── Grid — Polaroid quando o stamp tem foto ──────────────────────────────
+  if (coverPhoto) {
+    const photoSize = STAMP_SIZE - 24;
     return (
       <Animated.View style={[animBase, styles.gridCell]}>
-        <View style={{ transform: [{ rotate: rotation }], alignItems: 'center' }}>
-          <View style={[styles.circleCard, { borderColor: stamp.color }]}>
-            <Ionicons name={resolveStampIcon(stamp)} size={28} color={stamp.color} />
+        <View style={{ alignItems: 'center' }}>
+          <View style={styles.polaroidWrapper}>
+            <PolaroidPhoto
+              uri={coverPhoto}
+              width={photoSize}
+              height={photoSize}
+              rotation={rotation}
+              caption={formatDateShort(stamp.date)}
+            />
+            {extraPhotos > 0 && (
+              <View style={styles.photoBadge}>
+                <Text style={styles.photoBadgeText}>+{extraPhotos}</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.circlePlace} numberOfLines={1}>
             {stamp.place}
-          </Text>
-          <Text style={[styles.circleDate, { color: stamp.color }]}>
-            {formatDateShort(stamp.date)}
           </Text>
         </View>
       </Animated.View>
     );
   }
 
-  // ── Grid — Retangular para outras categorias ─────────────────────────────
+  // ── Grid — Selo, igual ao stamp principal da tela de detalhes ───────────
   return (
     <Animated.View style={[animBase, styles.gridCell]}>
-      <View
-        style={[
-          styles.rectCard,
-          { borderColor: stamp.color },
-          { transform: [{ rotate: rotation }] },
-        ]}
-      >
-        <Ionicons name={resolveStampIcon(stamp)} size={28} color={stamp.color} />
-        <Text style={styles.rectTitle} numberOfLines={2}>{stamp.title}</Text>
-        <Text style={[styles.rectDate, { color: stamp.color }]}>
-          {formatDateShort(stamp.date)}
+      <View style={{ alignItems: 'center' }}>
+        <View
+          style={[
+            styles.sealOuter,
+            { borderColor: stamp.color },
+            { transform: [{ rotate: rotation }] },
+          ]}
+        >
+          <View style={[styles.sealInnerBorder, { borderColor: stamp.color }]} pointerEvents="none" />
+          <Ionicons name={resolveStampIcon(stamp)} size={22} color={stamp.color} />
+          <Text style={[styles.sealTitle, { color: stamp.color }]} numberOfLines={2}>
+            {stamp.title.toUpperCase()}
+          </Text>
+          <View style={[styles.sealLine, { backgroundColor: stamp.color }]} />
+          <Text style={[styles.sealDate, { color: stamp.color }]}>
+            {formatDateShort(stamp.date)}
+          </Text>
+        </View>
+        <Text style={styles.circlePlace} numberOfLines={1}>
+          {stamp.place}
         </Text>
       </View>
     </Animated.View>
@@ -140,17 +159,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
 
-  // ── Circular (viagem) ──
-  circleCard: {
-    width: CIRCLE_SIZE,
-    height: CIRCLE_SIZE,
-    borderRadius: CIRCLE_SIZE / 2,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.surfaceContainer,
-    ...SHADOW_PAPER,
+  // ── Polaroid (stamps com foto) ──
+  polaroidWrapper: {
+    position: 'relative',
   },
+
   circlePlace: {
     marginTop: 6,
     fontFamily: FONTS.labelStamp,
@@ -160,40 +173,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     maxWidth: CIRCLE_SIZE,
   },
-  circleDate: {
-    fontFamily: FONTS.labelCaps,
-    fontSize: 10,
-    opacity: 0.7,
-    marginTop: 2,
-  },
 
-  // ── Retangular (outras categorias) ──
-  rectCard: {
-    width: RECT_W,
-    height: RECT_H,
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
+  // ── Selo (sem foto) — mesmo estilo do stamp principal em Stamp Detail ──
+  sealOuter: {
+    width: SEAL_SIZE,
+    height: SEAL_SIZE,
+    borderWidth: 2,
     borderRadius: 8,
     backgroundColor: COLORS.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    gap: 4,
+    padding: 8,
     ...SHADOW_PAPER,
   },
-  rectTitle: {
-    fontFamily: FONTS.headlineSm,
-    fontSize: 12,
-    color: COLORS.onSurface,
-    textAlign: 'center',
-    lineHeight: 15,
+  sealInnerBorder: {
+    position: 'absolute',
+    top: 4,
+    left: 4,
+    right: 4,
+    bottom: 4,
+    borderWidth: 1,
+    borderRadius: 5,
+    opacity: 0.3,
   },
-  rectDate: {
+  sealTitle: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 11,
+    fontSize: 9,
+    letterSpacing: 1,
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 11,
+  },
+  sealLine: {
+    width: 22,
+    height: 1,
+    marginVertical: 4,
+    opacity: 0.7,
+  },
+  sealDate: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 9,
     letterSpacing: 0.5,
-    opacity: 0.8,
+    opacity: 0.85,
   },
 
   // ── Lista ──

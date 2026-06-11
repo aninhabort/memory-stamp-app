@@ -1,6 +1,19 @@
 // Design System — Memory Stamp App
 // Inspired by physical passports and vintage expedition journals
 
+import { Dimensions } from 'react-native';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+// Volume/passport book card on the PassportScreen shelf — sized so a
+// single passport fills most of the screen width (one card per "page").
+export const VOLUME_CARD_WIDTH  = Math.min(SCREEN_WIDTH - 96, 320);
+export const VOLUME_CARD_HEIGHT = VOLUME_CARD_WIDTH * (240 / 180);
+
+// Horizontal padding needed on each side of the shelf so the focused
+// passport card sits centered on screen.
+export const VOLUME_SHELF_SIDE_PADDING = (SCREEN_WIDTH - VOLUME_CARD_WIDTH) / 2;
+
 // Color Palette
 export const COLORS = {
   // Paper tones

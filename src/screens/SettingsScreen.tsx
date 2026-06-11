@@ -14,6 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useUserName } from '../hooks/useUserName';
 import { useStamps } from '../hooks/useStamps';
+import { useAuth } from '../contexts/AuthContext';
 import {
   COLORS,
   FONTS,
@@ -22,10 +23,10 @@ import {
   SHADOW_PAPER,
   SPACING,
 } from '../constants/theme';
-import { CollectionStackParamList } from '../navigation/types';
+import { SettingsStackParamList } from '../navigation/types';
 
 type SettingsNavigation = NativeStackNavigationProp<
-  CollectionStackParamList,
+  SettingsStackParamList,
   'Settings'
 >;
 
@@ -38,6 +39,7 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { userName, setUserName } = useUserName();
   const { stamps } = useStamps();
+  const { logout } = useAuth();
 
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(userName || '');
@@ -100,6 +102,21 @@ export function SettingsScreen() {
     navigation.navigate('TermsOfUse');
   };
 
+  const handleLogout = () => {
+    Alert.alert(
+      'Log Out',
+      'Are you sure you want to log out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: () => logout(),
+        },
+      ]
+    );
+  };
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -152,31 +169,6 @@ export function SettingsScreen() {
                   <Ionicons name="pencil-outline" size={16} color={COLORS.outline} />
                 </TouchableOpacity>
               )}
-            </View>
-          </View>
-        </View>
-
-        {/* Statistics Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>ARCHIVE STATISTICS</Text>
-          <View style={styles.settingCard}>
-            <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Total Entries</Text>
-              <Text style={styles.statValue}>{stamps.length}</Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Countries Visited</Text>
-              <Text style={styles.statValue}>
-                {new Set(stamps.map(s => s.country).filter(Boolean)).size}
-              </Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.statRow}>
-              <Text style={styles.statLabel}>Photos Collected</Text>
-              <Text style={styles.statValue}>
-                {stamps.reduce((acc, s) => acc + (s.photos?.length || 0), 0)}
-              </Text>
             </View>
           </View>
         </View>
@@ -295,6 +287,26 @@ export function SettingsScreen() {
           </View>
         </View>
 
+        {/* Account Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>ACCOUNT</Text>
+          <View style={styles.settingCard}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleLogout}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="log-out-outline" size={20} color="#c44e3f" />
+                <Text style={[styles.settingLabel, { color: '#c44e3f' }]}>
+                  Log Out
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={COLORS.outline} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Footer stamp */}
         <View style={styles.footer}>
           <View style={styles.stampBorder}>
@@ -408,23 +420,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: COLORS.outlineVariant,
     marginVertical: 12,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  statLabel: {
-    fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.bodyMd,
-    color: COLORS.onSurfaceVariant,
-  },
-  statValue: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 16,
-    color: COLORS.secondary,
-    letterSpacing: 1,
   },
   comingSoonBadge: {
     backgroundColor: `${COLORS.secondary}20`,

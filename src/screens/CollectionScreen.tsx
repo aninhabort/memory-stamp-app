@@ -48,7 +48,7 @@ type GridCell = Stamp | { type: 'add' };
 
 export function CollectionScreen() {
   const navigation   = useNavigation<CollectionNavigation>();
-  const { stamps, loadStamps } = useStamps();
+  const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
   const { userName, reloadUserName } = useUserName();
   const insets       = useSafeAreaInsets();
 
@@ -56,9 +56,12 @@ export function CollectionScreen() {
   const [sortBy, setSortBy]     = useState<'date' | 'name'>('date');
 
   useFocusEffect(useCallback(() => {
-    loadStamps();
-    reloadUserName();
-  }, [loadStamps, reloadUserName]));
+    (async () => {
+      await syncStampsFromCloud();
+      await loadStamps();
+      await reloadUserName();
+    })();
+  }, [syncStampsFromCloud, loadStamps, reloadUserName]));
 
   // ── Dados calculados ──────────────────────────────────────────────────────
 
@@ -171,6 +174,31 @@ export function CollectionScreen() {
           <View style={[styles.progressFill, { width: `${exploredPct}%` }]} />
         </View>
         <Text style={styles.progressLabel}>{exploredPct}% EXPLORED</Text>
+      </View>
+
+      {/* ─── Archive Statistics ─── */}
+      <View style={styles.statsSection}>
+        <Text style={styles.sectionTitle}>ARCHIVE STATISTICS</Text>
+        <View style={styles.statsCard}>
+          <View style={styles.statCol}>
+            <Text style={styles.statValue}>{stamps.length}</Text>
+            <Text style={styles.statLabel}>Total Entries</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statCol}>
+            <Text style={styles.statValue}>
+              {new Set(stamps.map(s => s.country).filter(Boolean)).size}
+            </Text>
+            <Text style={styles.statLabel}>Countries Visited</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statCol}>
+            <Text style={styles.statValue}>
+              {stamps.reduce((acc, s) => acc + (s.photos?.length || 0), 0)}
+            </Text>
+            <Text style={styles.statLabel}>Photos Collected</Text>
+          </View>
+        </View>
       </View>
 
       {/* ─── Search bar estilo ledger ─── */}
@@ -378,6 +406,40 @@ const styles = StyleSheet.create({
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     marginBottom: 12,
+  },
+
+  // ── Archive Statistics ──
+  statsSection: {
+    marginBottom: 20,
+  },
+  statsCard: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surfaceContainerLow,
+    borderRadius: RADIUS.md,
+    padding: 16,
+    ...SHADOW_PAPER,
+  },
+  statCol: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: COLORS.outlineVariant,
+    marginHorizontal: 8,
+  },
+  statLabel: {
+    fontFamily: FONTS.labelStampRegular,
+    fontSize: FONT_SIZES.labelXs,
+    color: COLORS.onSurfaceVariant,
+    textAlign: 'center',
+  },
+  statValue: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 20,
+    color: COLORS.secondary,
+    letterSpacing: 1,
   },
 
   // ── Grid ──

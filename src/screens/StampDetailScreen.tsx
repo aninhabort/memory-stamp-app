@@ -6,7 +6,6 @@ import {
   ScrollView,
   StyleSheet,
   Alert,
-  Image,
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +19,6 @@ import {
   FONT_SIZES,
   RADIUS,
   SHADOW_PAPER,
-  SHADOW_STRONG,
   SPACING,
 } from '../constants/theme';
 import type { Stamp } from '../types';
@@ -29,20 +27,25 @@ import {
   CATEGORY_LABELS,
   formatArrivalDate,
   formatDateLong,
-  getNegativeNumber,
+  formatDateShort,
+  getCardRotation,
   resolvePhotos,
   resolveStampIcon,
 } from '../utils/stampUtils';
+import { PolaroidPhoto } from '../components/PolaroidPhoto';
 
 // StampDetail is registered in three different stacks (Passaporte, Coleção,
 // Buscar). A standalone param-list type keeps the component independent of any
 // specific stack and prevents incorrect navigation-prop inference.
-type StampDetailParamList = { StampDetail: { stamp: Stamp } };
+type StampDetailParamList = { StampDetail: { stamp: Stamp }; EditStamp: { stamp: Stamp } };
 type Props = NativeStackScreenProps<StampDetailParamList, 'StampDetail'>;
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 // Photo width: 20 px horizontal padding on each side of the scroll container.
 const PHOTO_WIDTH = SCREEN_WIDTH - 40;
+// Polaroid frame is noticeably narrower than its page so it reads as a
+// small floating print rather than a full-bleed image.
+const POLAROID_SIZE = PHOTO_WIDTH - 120;
 
 // ── Componente ────────────────────────────────────────────────────────────────
 
@@ -54,7 +57,6 @@ export function StampDetailScreen({ route, navigation }: Props) {
 
   const photos    = resolvePhotos(stamp);
   const hasPhotos = photos.length > 0;
-  const negativeNumber = getNegativeNumber(stamp.id);
   const headerHeight   = insets.top + 60;
 
   const handlePhotoScroll = (event: { nativeEvent: { contentOffset: { x: number } } }) => {
@@ -101,7 +103,7 @@ export function StampDetailScreen({ route, navigation }: Props) {
             />
 
             {/* Ícone do stamp */}
-            <Ionicons name={resolveStampIcon(stamp)} size={64} color={stamp.color} />
+            <Ionicons name={resolveStampIcon(stamp)} size={48} color={stamp.color} />
 
             {/* Título em maiúsculas estilo labelStamp */}
             <Text style={[styles.sealTitle, { color: stamp.color }]} numberOfLines={2}>
@@ -113,15 +115,15 @@ export function StampDetailScreen({ route, navigation }: Props) {
 
             {/* Data de chegada */}
             <Text style={[styles.sealDate, { color: stamp.color }]}>
-              ARRIVED {formatArrivalDate(stamp.date)}
+              {formatArrivalDate(stamp.date)}
             </Text>
           </View>
 
         </View>
 
-        {/* ── Fotos (se existirem) ─────────────────────────────────────────── */}
+        {/* ── Fotos (se existirem) — molduras estilo polaroid ──────────────── */}
         {hasPhotos && (
-          <View style={styles.photoCard}>
+          <View style={styles.photoSection}>
             <ScrollView
               horizontal
               pagingEnabled
@@ -131,12 +133,15 @@ export function StampDetailScreen({ route, navigation }: Props) {
               scrollEventThrottle={16}
             >
               {photos.map((uri, i) => (
-                <Image
-                  key={i}
-                  source={{ uri }}
-                  style={styles.photo}
-                  resizeMode="cover"
-                />
+                <View key={i} style={styles.photoPage}>
+                  <PolaroidPhoto
+                    uri={uri}
+                    width={POLAROID_SIZE}
+                    height={POLAROID_SIZE}
+                    rotation={getCardRotation(`${stamp.id}-${i}`)}
+                    caption={formatDateShort(stamp.date)}
+                  />
+                </View>
               ))}
             </ScrollView>
             {/* Indicador de foto atual para múltiplas fotos */}
@@ -153,10 +158,6 @@ export function StampDetailScreen({ route, navigation }: Props) {
                 ))}
               </View>
             )}
-            {/* Legenda estilo impressão em papel de prata */}
-            <Text style={styles.photoCaption}>
-              Negative #{negativeNumber} — Silver Halide Print
-            </Text>
           </View>
         )}
 
@@ -213,19 +214,9 @@ export function StampDetailScreen({ route, navigation }: Props) {
 
         {/* ── Botões de ação ─────────────────────────────────────────────── */}
         <View style={styles.actionsSection}>
-          {/* Primário — CERTIFY MEMORY (navega de volta, apenas estético) */}
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={() => navigation.goBack()}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="checkmark-circle" size={20} color={COLORS.white} />
-            <Text style={styles.primaryBtnText}>CERTIFY MEMORY</Text>
-          </TouchableOpacity>
-
           {/* Link de remoção — labelCaps secondary, confirmação antes de deletar */}
           <TouchableOpacity style={styles.deleteLink} onPress={handleDelete} activeOpacity={0.7}>
-            <Text style={styles.deleteLinkText}>Remover dos Arquivos</Text>
+            <Text style={styles.deleteLinkText}>Deletar</Text>
           </TouchableOpacity>
         </View>
 
@@ -255,13 +246,16 @@ export function StampDetailScreen({ route, navigation }: Props) {
 
         {/* Título central */}
         <View style={styles.headerCenter} pointerEvents="none">
-          <Text style={styles.headerLabel}>MEMORY ARCHIVE</Text>
-          <Text style={styles.headerTitle}>Entry Details</Text>
+          <Text style={styles.headerTitle}>Memory Details</Text>
         </View>
 
-        {/* Partilhar */}
-        <TouchableOpacity style={styles.headerRight} activeOpacity={0.7}>
-          <Ionicons name="share-outline" size={20} color={COLORS.primary} />
+        {/* Editar */}
+        <TouchableOpacity
+          style={styles.headerRight}
+          onPress={() => navigation.navigate('EditStamp', { stamp })}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="create-outline" size={20} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
 
@@ -310,13 +304,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  headerLabel: {
-    fontFamily: FONTS.labelCaps,
-    fontSize: 10,
-    color: COLORS.onSurfaceVariant,
-    letterSpacing: 2,
-    marginBottom: 2,
-  },
   headerTitle: {
     fontFamily: FONTS.headlineSm,
     fontSize: 16,
@@ -332,16 +319,16 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 32,
   },
-  // Carimbo principal: quadrado 280px, rotacionado -3deg
+  // Carimbo principal: quadrado 220px, rotacionado -3deg
   sealOuter: {
-    width: 280,
-    height: 280,
+    width: 220,
+    height: 220,
     borderWidth: 2,
     borderRadius: 12,
     backgroundColor: COLORS.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    padding: 18,
     transform: [{ rotate: '-3deg' }],
     ...SHADOW_PAPER,
   },
@@ -358,16 +345,16 @@ const styles = StyleSheet.create({
   },
   sealTitle: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 16,
-    letterSpacing: 3,
+    fontSize: 14,
+    letterSpacing: 2.5,
     textAlign: 'center',
-    marginTop: 10,
-    lineHeight: 22,
+    marginTop: 8,
+    lineHeight: 19,
   },
   sealLine: {
-    width: 48,
+    width: 40,
     height: 1,
-    marginVertical: 10,
+    marginVertical: 8,
     opacity: 0.7,
   },
   sealDate: {
@@ -377,41 +364,27 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
 
-  // ── Fotos ──
-  photoCard: {
+  // ── Fotos — molduras polaroid ──
+  photoSection: {
     width: '100%',
-    backgroundColor: COLORS.white,
-    borderRadius: 10,
-    overflow: 'hidden',
     marginBottom: 32,
-    ...SHADOW_STRONG,
   },
-  photo: {
+  photoPage: {
     width: PHOTO_WIDTH,
-    height: 256,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   photoDots: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 5,
-    paddingTop: 8,
+    paddingTop: 12,
   },
   dot: {
     width: 5,
     height: 5,
     borderRadius: 999,
     opacity: 0.7,
-  },
-  photoCaption: {
-    fontFamily: FONTS.labelCaps,
-    fontSize: FONT_SIZES.labelXs,
-    color: COLORS.onSurfaceVariant,
-    textAlign: 'center',
-    fontStyle: 'italic',
-    paddingHorizontal: 12,
-    paddingTop: 6,
-    paddingBottom: 10,
-    letterSpacing: 0.5,
   },
 
   // ── Metadados estilo ledger ──
@@ -489,22 +462,6 @@ const styles = StyleSheet.create({
     width: '100%',
     gap: 12,
     marginBottom: 36,
-  },
-  primaryBtn: {
-    height: 56,
-    backgroundColor: COLORS.secondary,
-    borderRadius: RADIUS.full,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    ...SHADOW_STRONG,
-  },
-  primaryBtnText: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelStamp,
-    color: COLORS.white,
-    letterSpacing: 1.5,
   },
   // Link de remoção
   deleteLink: {

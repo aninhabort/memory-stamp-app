@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Stamp } from '../types';
 import { StorageService } from '../services/storage';
+import { CloudStorageService } from '../services/cloudStorage';
+import { useAuth } from '../contexts/AuthContext';
 
 const SAMPLE_STAMPS: Stamp[] = [
   {
@@ -112,7 +114,23 @@ function migratePhotos(s: Stamp): Stamp {
   return s;
 }
 
+// Migrate emoji icons → Ionicons and photo → photos
+function migrateStamps(stamps: Stamp[]): Stamp[] {
+  return stamps.map((s) => ({ ...s, icon: migrateIcon(s.icon) })).map(migratePhotos);
+}
+
+// Combines two stamp lists into their union, deduped by id. Used to
+// reconcile stamps created independently on different devices instead of
+// letting one device's data silently overwrite the other's.
+function mergeStamps(a: Stamp[], b: Stamp[]): Stamp[] {
+  const map = new Map<string, Stamp>();
+  for (const s of a) map.set(s.id, s);
+  for (const s of b) map.set(s.id, s);
+  return Array.from(map.values());
+}
+
 export function useStamps() {
+  const { userId } = useAuth();
   const [stamps, setStamps] = useState<Stamp[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -125,10 +143,7 @@ export function useStamps() {
     try {
       const parsed = await StorageService.getStamps();
       if (parsed !== null) {
-        // Migrate emoji icons → Ionicons and photo → photos
-        const migrated = parsed
-          .map((s) => ({ ...s, icon: migrateIcon(s.icon) }))
-          .map(migratePhotos);
+        const migrated = migrateStamps(parsed);
         const hadMigration = migrated.some(
           (s, i) => s.icon !== parsed[i].icon || !parsed[i].photos,
         );
@@ -148,6 +163,42 @@ export function useStamps() {
     }
   }, []);
 
+  // Pulls the latest stamps from the cloud, if the signed-in account has
+  // any saved there, and merges them with this device's local stamps
+  // (union by id). Used both on login and whenever the Passport screen
+  // regains focus, so changes made on another device show up here without
+  // needing a full app restart, and without one device's data clobbering
+  // the other's.
+  const syncStampsFromCloud = useCallback(async (): Promise<boolean> => {
+    if (!userId) return false;
+    const cloud = await CloudStorageService.getUserData(userId);
+    if (!cloud?.stamps) return false;
+    const cloudStamps = migrateStamps(cloud.stamps);
+    const merged = mergeStamps(stampsRef.current, cloudStamps);
+    await StorageService.setStamps(merged);
+    setStamps(merged);
+    if (merged.length !== cloudStamps.length) {
+      await CloudStorageService.setStamps(userId, merged);
+    }
+    return true;
+  }, [userId]);
+
+  // On first sign-in, if the account has no cloud stamps yet, seed the
+  // cloud with this device's local data.
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const applied = await syncStampsFromCloud();
+      if (!applied) {
+        // Read from storage (not stampsRef) since it reflects this account's
+        // local data — in-memory state may still hold a previous account's
+        // stamps if it hasn't reloaded yet.
+        const local = await StorageService.getStamps() ?? [];
+        await CloudStorageService.setStamps(userId, local);
+      }
+    })();
+  }, [userId, syncStampsFromCloud]);
+
   const addStamp = useCallback(async (data: Omit<Stamp, 'id' | 'createdAt'>) => {
     const stamp: Stamp = {
       ...data,
@@ -158,24 +209,39 @@ export function useStamps() {
     try {
       await StorageService.setStamps(updated);
       setStamps(updated);
+      if (userId) await CloudStorageService.setStamps(userId, updated);
     } catch (error) {
       console.error('Error adding stamp:', error);
     }
-  }, []);
+  }, [userId]);
+
+  const updateStamp = useCallback(async (id: string, data: Omit<Stamp, 'id' | 'createdAt'>) => {
+    const updated = stampsRef.current.map((s) =>
+      s.id === id ? { ...s, ...data } : s
+    );
+    try {
+      await StorageService.setStamps(updated);
+      setStamps(updated);
+      if (userId) await CloudStorageService.setStamps(userId, updated);
+    } catch (error) {
+      console.error('Error updating stamp:', error);
+    }
+  }, [userId]);
 
   const deleteStamp = useCallback(async (id: string) => {
     const updated = stampsRef.current.filter((s) => s.id !== id);
     try {
       await StorageService.setStamps(updated);
       setStamps(updated);
+      if (userId) await CloudStorageService.setStamps(userId, updated);
     } catch (error) {
       console.error('Error deleting stamp:', error);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     loadStamps();
   }, [loadStamps]);
 
-  return { stamps, loading, addStamp, deleteStamp, loadStamps };
+  return { stamps, loading, addStamp, updateStamp, deleteStamp, loadStamps, syncStampsFromCloud };
 }

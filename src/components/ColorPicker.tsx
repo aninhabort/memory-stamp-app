@@ -9,7 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, FONT_SIZES, RADIUS, SHADOW_PAPER } from '../constants/theme';
 
-const PRESET_COLORS = [
+export const PRESET_COLORS = [
   '#4A90D9', '#9B59B6', '#E74C3C',
   '#27AE60', '#E67E22', '#1B2B4B',
   '#FF69B4', '#00CED1', '#FFD700',

@@ -13,6 +13,7 @@ import { STORAGE_KEYS } from '../services/storage';
 interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
+  userId: string | null;
   userName: string | null;
   userEmail: string | null;
   hasAccount: boolean;
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [hasAccount, setHasAccount] = useState(false);
@@ -36,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user) {
         // User is signed in
         setIsAuthenticated(true);
+        setUserId(user.uid);
         setUserEmail(user.email);
         setHasAccount(true);
 
@@ -49,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         // User is signed out
         setIsAuthenticated(false);
+        setUserId(null);
         setUserEmail(null);
         setUserName(null);
       }
@@ -63,6 +67,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Create user in Firebase
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+
+      // Clear any leftover local data from a previously logged-in account on
+      // this device, so the new account starts with a clean passport.
+      await AsyncStorage.multiRemove([STORAGE_KEYS.STAMPS, STORAGE_KEYS.VOLUMES]);
 
       // Store user name in AsyncStorage (Firebase doesn't store display names by default)
       await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, name);
@@ -128,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         isAuthenticated,
         isLoading,
+        userId,
         userName,
         userEmail,
         hasAccount,

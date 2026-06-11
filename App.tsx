@@ -25,6 +25,7 @@ import { CreateStampScreen }    from './src/screens/CreateStampScreen';
 import { CollectionScreen }     from './src/screens/CollectionScreen';
 import { SearchScreen }         from './src/screens/SearchScreen';
 import { StampDetailScreen }    from './src/screens/StampDetailScreen';
+import { EditStampScreen }      from './src/screens/EditStampScreen';
 import { SettingsScreen }       from './src/screens/SettingsScreen';
 import { ContactSupportScreen } from './src/screens/ContactSupportScreen';
 import { FAQScreen }            from './src/screens/FAQScreen';
@@ -59,6 +60,36 @@ function PassportNavigator() {
         component={StampDetailScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <PassportStack.Screen
+        name="EditStamp"
+        component={EditStampScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <PassportStack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <PassportStack.Screen
+        name="ContactSupport"
+        component={ContactSupportScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <PassportStack.Screen
+        name="FAQ"
+        component={FAQScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <PassportStack.Screen
+        name="PrivacyPolicy"
+        component={PrivacyPolicyScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <PassportStack.Screen
+        name="TermsOfUse"
+        component={TermsOfUseScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </PassportStack.Navigator>
   );
 }
@@ -72,6 +103,11 @@ function SearchNavigator() {
         component={StampDetailScreen}
         options={{ animation: 'slide_from_right' }}
       />
+      <SearchStack.Screen
+        name="EditStamp"
+        component={EditStampScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
     </SearchStack.Navigator>
   );
 }
@@ -83,6 +119,11 @@ function CollectionNavigator() {
       <CollectionStack.Screen
         name="StampDetail"
         component={StampDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <CollectionStack.Screen
+        name="EditStamp"
+        component={EditStampScreen}
         options={{ animation: 'slide_from_right' }}
       />
       <CollectionStack.Screen

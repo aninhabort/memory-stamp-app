@@ -24,26 +24,54 @@ import { CATEGORY_LABELS_EN, getEntryCode } from '../utils/stampUtils';
 
 type BuscarNavigation = NativeStackNavigationProp<BuscarStackParamList, 'BuscarHome'>;
 
+// Category filter chips, "All" plus every stamp category.
+const CATEGORY_FILTERS: { value: Stamp['category'] | 'all'; label: string }[] = [
+  { value: 'all', label: 'All' },
+  ...(Object.keys(CATEGORY_LABELS_EN) as Stamp['category'][]).map(value => ({
+    value,
+    label: CATEGORY_LABELS_EN[value],
+  })),
+];
+
 export function SearchScreen() {
   const navigation = useNavigation<BuscarNavigation>();
-  const { stamps, loadStamps } = useStamps();
+  const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
   const [query, setQuery] = useState('');
+  const [category, setCategory] = useState<Stamp['category'] | 'all'>('all');
+  const [country, setCountry] = useState<string>('all');
   const insets = useSafeAreaInsets();
 
-  useFocusEffect(useCallback(() => { loadStamps(); }, [loadStamps]));
+  useFocusEffect(useCallback(() => {
+    (async () => {
+      await syncStampsFromCloud();
+      await loadStamps();
+    })();
+  }, [syncStampsFromCloud, loadStamps]));
 
-  // Filtra em tempo real por título, lugar, país e nota
+  // Países disponíveis, derivados dos stamps existentes
+  const countryFilters = useMemo(() => {
+    const countries = Array.from(
+      new Set(stamps.map(s => s.country).filter((c): c is string => !!c))
+    ).sort();
+    return [{ value: 'all', label: 'All' }, ...countries.map(c => ({ value: c, label: c }))];
+  }, [stamps]);
+
+  const hasFilters = query.trim() !== '' || category !== 'all' || country !== 'all';
+
+  // Filtra em tempo real por título, lugar, país, nota, categoria e país
   const filteredStamps = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return [];
-    return stamps.filter(
-      s =>
+    return stamps.filter(s => {
+      const matchesQuery = !q ||
         s.title.toLowerCase().includes(q)   ||
         s.place.toLowerCase().includes(q)   ||
         (s.country?.toLowerCase().includes(q) ?? false) ||
-        (s.note?.toLowerCase().includes(q)    ?? false),
-    );
-  }, [stamps, query]);
+        (s.note?.toLowerCase().includes(q)    ?? false);
+      const matchesCategory = category === 'all' || s.category === category;
+      const matchesCountry = country === 'all' || s.country === country;
+      return matchesQuery && matchesCategory && matchesCountry;
+    });
+  }, [stamps, query, category, country]);
 
   const handleStampPress = (stamp: Stamp) =>
     navigation.navigate('StampDetail', { stamp });
@@ -73,11 +101,15 @@ export function SearchScreen() {
     </View>
   );
 
-  // ── Sem resultados (query mas sem match) ─────────────────────────────────
+  // ── Sem resultados (filtros aplicados mas sem match) ─────────────────────
   const NoResults = (
     <View style={styles.emptyState}>
       <Ionicons name="file-tray-outline" size={40} color={COLORS.outline} style={{ opacity: 0.4 }} />
-      <Text style={styles.emptyText}>No entries found for "{query}"</Text>
+      <Text style={styles.emptyText}>
+        {query.trim()
+          ? `No entries found for "${query}"`
+          : 'No entries found for this category'}
+      </Text>
     </View>
   );
 
@@ -86,7 +118,6 @@ export function SearchScreen() {
 
       {/* ── Cabeçalho ────────────────────────────────────────────────── */}
       <View style={styles.headerArea}>
-        <Text style={styles.archiveLabel}>MEMORY ARCHIVE</Text>
         <Text style={styles.screenTitle}>Search Destinations</Text>
       </View>
 
@@ -112,8 +143,61 @@ export function SearchScreen() {
         )}
       </View>
 
+      {/* ── Filtros por categoria ────────────────────────────────────── */}
+      <View style={styles.filterRow}>
+        <FlatList
+          data={CATEGORY_FILTERS}
+          keyExtractor={item => item.value}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterList}
+          renderItem={({ item }) => {
+            const active = category === item.value;
+            return (
+              <TouchableOpacity
+                style={[styles.filterChip, active && styles.filterChipActive]}
+                onPress={() => setCategory(item.value)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                  {item.label.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      </View>
+
+      {/* ── Filtro por país ──────────────────────────────────────────── */}
+      {countryFilters.length > 1 && (
+        <View style={styles.filterRow}>
+          <Text style={styles.filterLabel}>COUNTRY</Text>
+          <FlatList
+            data={countryFilters}
+            keyExtractor={item => item.value}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterList}
+            renderItem={({ item }) => {
+              const active = country === item.value;
+              return (
+                <TouchableOpacity
+                  style={[styles.filterChip, active && styles.filterChipActive]}
+                  onPress={() => setCountry(item.value)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                    {item.label.toUpperCase()}
+                  </Text>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      )}
+
       {/* ── Conteúdo ─────────────────────────────────────────────────── */}
-      {query.trim() === '' ? EmptyPrompt : (
+      {!hasFilters ? EmptyPrompt : (
         <FlatList
           data={filteredStamps}
           keyExtractor={item => item.id}
@@ -138,13 +222,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.pageMargin,
     paddingTop: 16,
     paddingBottom: 8,
-  },
-  archiveLabel: {
-    fontFamily: FONTS.labelCaps,
-    fontSize: 9,
-    color: COLORS.onSurfaceVariant,
-    letterSpacing: 2.5,
-    marginBottom: 4,
   },
   screenTitle: {
     fontFamily: FONTS.displayLg,
@@ -171,6 +248,44 @@ const styles = StyleSheet.create({
     color: COLORS.onSurface,
     fontStyle: 'italic',
     paddingVertical: 6,
+  },
+
+  // ── Filtros por categoria / ano / país ──
+  filterRow: {
+    marginBottom: 16,
+  },
+  filterLabel: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: 9,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 2,
+    paddingHorizontal: SPACING.pageMargin,
+    marginBottom: 6,
+  },
+  filterList: {
+    paddingHorizontal: SPACING.pageMargin,
+    gap: 8,
+  },
+  filterChip: {
+    borderWidth: 1,
+    borderColor: COLORS.outlineVariant,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    marginRight: 8,
+  },
+  filterChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterChipText: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: 10,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1.2,
+  },
+  filterChipTextActive: {
+    color: COLORS.onPrimary,
   },
 
   // ── Lista de resultados ──

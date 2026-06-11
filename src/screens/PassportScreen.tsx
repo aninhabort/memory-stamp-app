@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,8 +30,12 @@ import {
   RADIUS,
   SHADOW_PAPER,
   SPACING,
+  VOLUME_CARD_WIDTH,
+  VOLUME_CARD_HEIGHT,
+  VOLUME_SHELF_SIDE_PADDING,
 } from '../constants/theme';
 import { Stamp, Volume } from '../types';
+import { getInitials } from '../utils/stampUtils';
 import { PassportStackParamList, RootTabParamList } from '../navigation/types';
 
 type PassportNavigation = CompositeNavigationProp<
@@ -40,6 +45,9 @@ type PassportNavigation = CompositeNavigationProp<
 
 // Volume color aliases for UI elements
 const VOLUME_INK = COLORS.onPrimary; // '#d5e3ff'
+
+// Spacing between cards on the volume shelf, used for snap-to-page scrolling.
+const SHELF_ITEM_GAP = 16;
 
 // ─── AddVolumeCard ─────────────────────────────────────────────────────────────
 // Placeholder card that occupies the space for the next volume to be created.
@@ -64,9 +72,9 @@ function AddVolumeCard({ onPress }: { onPress: () => void }) {
 
 export function PassportScreen() {
   const navigation = useNavigation<PassportNavigation>();
-  const { stamps, loadStamps } = useStamps();
+  const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
   const { userName, reloadUserName } = useUserName();
-  const { volumes, addVolume } = useVolumes();
+  const { volumes, addVolume, deleteVolume, syncVolumesFromCloud } = useVolumes();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -77,15 +85,20 @@ export function PassportScreen() {
   const shelfScale     = useRef(new Animated.Value(1)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
 
-  // Reload stamps and userName when screen comes into focus
+  // Reload stamps, volumes and userName when screen comes into focus, pulling
+  // the latest from the cloud first so changes made on another device show up.
   useFocusEffect(
     useCallback(() => {
-      loadStamps();
-      reloadUserName();
-    }, [loadStamps, reloadUserName]),
+      (async () => {
+        await Promise.all([syncStampsFromCloud(), syncVolumesFromCloud()]);
+        await loadStamps();
+        await reloadUserName();
+      })();
+    }, [syncStampsFromCloud, syncVolumesFromCloud, loadStamps, reloadUserName]),
   );
 
-  // Control tab bar visibility
+  // Control tab bar style — keep it visible in both the closed (shelf) and
+  // open (volume) states, only restyling it while a volume is open.
   useEffect(() => {
     const parent = navigation.getParent();
     parent?.setOptions({
@@ -96,7 +109,7 @@ export function PassportScreen() {
             height: 60 + insets.bottom,
             paddingBottom: 8 + insets.bottom,
           }
-        : { display: 'none' },
+        : undefined,
     });
   }, [isOpen, navigation, insets.bottom]);
 
@@ -140,9 +153,35 @@ export function PassportScreen() {
   const nextVolumeLabel = `VOLUME ${toRoman(volumes.length + 1)}`;
 
   // ── Create new volume ──────────────────────────────────────────────────────
-  const handleCreateVolume = async (name: string) => {
-    await addVolume(name);
+  // Closes the modal immediately instead of waiting on addVolume — its cloud
+  // sync step can hang while offline, which would otherwise leave the modal
+  // stuck open even though the volume was already saved locally.
+  const handleCreateVolume = (name: string) => {
     setShowAddModal(false);
+    addVolume(name);
+  };
+
+  // ── Delete volume ────────────────────────────────────────────────────────
+  const handleDeleteVolume = (volume: Volume) => {
+    if (volumes.length <= 1) {
+      Alert.alert('Não é possível excluir', 'Você precisa manter pelo menos um passaporte.');
+      return;
+    }
+    Alert.alert(
+      'Excluir passaporte',
+      `Tem certeza que deseja excluir "${volume.name}"? Todos os selos guardados nele serão apagados permanentemente.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteVolume(volume.id);
+            await loadStamps();
+          },
+        },
+      ],
+    );
   };
 
   // ── Renders ────────────────────────────────────────────────────────────────
@@ -185,17 +224,26 @@ export function PassportScreen() {
       return <AddVolumeCard onPress={() => setShowAddModal(true)} />;
     }
     const vol = item as Volume;
-    // Calculate stamp count for this volume
-    const stampCount = vol.id === 'default'
-      ? stamps.filter(s => !s.volumeId || s.volumeId === 'default').length
-      : stamps.filter(s => s.volumeId === vol.id).length;
+    // Stamps belonging to this volume
+    const volStamps = vol.id === 'default'
+      ? stamps.filter(s => !s.volumeId || s.volumeId === 'default')
+      : stamps.filter(s => s.volumeId === vol.id);
+
+    // Show the year of the oldest stamp in the volume, falling back to the
+    // volume's own year if it has no stamps yet.
+    const earliestYear = volStamps
+      .map(s => s.date.slice(0, 4))
+      .sort()[0];
+    const displayYear = earliestYear ? `EST. ${earliestYear}` : vol.year;
 
     return (
       <VolumeBookCard
         volume={vol}
+        displayYear={displayYear}
         isCurrent={index === volumes.length - 1}
-        stampCount={stampCount}
+        stampCount={volStamps.length}
         onPress={() => handleVolumePress(vol)}
+        onDelete={() => handleDeleteVolume(vol)}
       />
     );
   };
@@ -212,8 +260,21 @@ export function PassportScreen() {
 
           {/* Header THE ARCHIVES */}
           <View style={[styles.archivesHeader, { paddingTop: insets.top + 16 }]}>
-            <Text style={styles.archivesLabel}>THE ARCHIVES</Text>
-            <Text style={styles.archivesTitle}>Passport Collection</Text>
+            <View style={styles.archivesTitleRow}>
+              <View style={styles.archivesTitleCol}>
+                <Text style={styles.archivesLabel}>THE ARCHIVES</Text>
+                <Text style={styles.archivesTitle}>Passports</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.profileBtn}
+                onPress={() => navigation.navigate('Collection')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{getInitials(userName || 'Viajante') || '?'}</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
             <View style={styles.archivesDivider} />
           </View>
 
@@ -242,7 +303,10 @@ export function PassportScreen() {
               renderItem={renderShelfItem}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.shelfContent}
-              ItemSeparatorComponent={() => <View style={{ width: 16 }} />}
+              ItemSeparatorComponent={() => <View style={{ width: SHELF_ITEM_GAP }} />}
+              snapToInterval={VOLUME_CARD_WIDTH + SHELF_ITEM_GAP}
+              decelerationRate="fast"
+              snapToAlignment="start"
             />
           </Animated.View>
         </View>
@@ -256,7 +320,7 @@ export function PassportScreen() {
           <View style={[styles.openHeader, { paddingTop: insets.top + SPACING.stackTight }]}>
             <TouchableOpacity style={styles.closeBtn} onPress={handleClose} activeOpacity={0.7}>
               <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
-              <Text style={styles.closeBtnText}>Close</Text>
+              <Text style={styles.closeBtnText}>Back</Text>
             </TouchableOpacity>
 
             <Text style={styles.openTitle} numberOfLines={1}>
@@ -329,6 +393,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.pageMargin,
     paddingBottom: SPACING.elementGap,
   },
+  archivesTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  archivesTitleCol: {
+    flex: 1,
+  },
+  profileBtn: {
+    padding: 4,
+  },
+  avatar: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: COLORS.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontFamily: FONTS.headlineSm,
+    fontSize: 18,
+    color: COLORS.onPrimaryContainer,
+    letterSpacing: 1,
+  },
   archivesLabel: {
     fontFamily: FONTS.labelCaps,
     fontSize: FONT_SIZES.labelCaps,
@@ -353,7 +442,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   shelfContent: {
-    paddingHorizontal: SPACING.pageMargin,
+    paddingHorizontal: VOLUME_SHELF_SIDE_PADDING,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -379,8 +468,8 @@ const styles = StyleSheet.create({
 
   // Placeholder card to add new volume
   addVolumeCard: {
-    width: 180,
-    height: 240,
+    width: VOLUME_CARD_WIDTH,
+    height: VOLUME_CARD_HEIGHT,
     backgroundColor: COLORS.surfaceContainerLow,
     borderLeftWidth: 6,
     borderLeftColor: COLORS.outlineVariant,
