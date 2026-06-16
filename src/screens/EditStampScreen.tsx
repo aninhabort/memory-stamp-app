@@ -25,7 +25,7 @@ import { StampForm, type StampFormData } from '../components/StampForm';
 // EditStamp is registered in three different stacks (Passaporte, Coleção,
 // Buscar). A standalone param-list type keeps the component independent of any
 // specific stack and prevents incorrect navigation-prop inference.
-type EditStampParamList = { EditStamp: { stamp: Stamp } };
+type EditStampParamList = { EditStamp: { stamp: Stamp }; StampDetail: { stamp: Stamp } };
 type Props = NativeStackScreenProps<EditStampParamList, 'EditStamp'>;
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -64,7 +64,9 @@ export function EditStampScreen({ route, navigation }: Props) {
 
   const handleSubmit = async (data: StampFormData) => {
     await updateStamp(stamp.id, data);
-    navigation.goBack();
+    // Navigate to StampDetail with the updated stamp data so the detail screen
+    // reflects the edits immediately rather than showing stale route.params.
+    navigation.navigate('StampDetail', { stamp: { ...stamp, ...data } });
   };
 
   const handleDiscard = () => {

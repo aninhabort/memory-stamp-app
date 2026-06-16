@@ -1,12 +1,5 @@
+import { NavigatorScreenParams } from '@react-navigation/native';
 import { Stamp } from '../types';
-
-// Main tabs
-export type RootTabParamList = {
-  Passport: undefined;
-  Search: undefined;
-  Create: undefined;
-  Collection: undefined;
-};
 
 // Settings and the screens reachable from it. Shared by any stack that wants
 // to expose the profile/settings area (e.g. Passport and Collection tabs).
@@ -20,9 +13,17 @@ export type SettingsStackParamList = {
 
 // Passport tab stack
 export type PassportStackParamList = SettingsStackParamList & {
-  PassportHome: undefined;
+  PassportHome: { autoOpen?: boolean } | undefined;
   StampDetail: { stamp: Stamp };
   EditStamp: { stamp: Stamp };
+};
+
+// Main tabs
+export type RootTabParamList = {
+  Passport: NavigatorScreenParams<PassportStackParamList> | undefined;
+  Search: undefined;
+  Create: undefined;
+  Collection: undefined;
 };
 
 // Collection tab stack

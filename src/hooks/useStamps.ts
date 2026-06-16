@@ -209,7 +209,9 @@ export function useStamps() {
     try {
       await StorageService.setStamps(updated);
       setStamps(updated);
-      if (userId) await CloudStorageService.setStamps(userId, updated);
+      // Cloud sync is best-effort in the background — not awaited so it
+      // never blocks navigation when Firestore is slow or offline.
+      if (userId) CloudStorageService.setStamps(userId, updated);
     } catch (error) {
       console.error('Error adding stamp:', error);
     }
@@ -222,7 +224,7 @@ export function useStamps() {
     try {
       await StorageService.setStamps(updated);
       setStamps(updated);
-      if (userId) await CloudStorageService.setStamps(userId, updated);
+      if (userId) CloudStorageService.setStamps(userId, updated);
     } catch (error) {
       console.error('Error updating stamp:', error);
     }
@@ -233,7 +235,7 @@ export function useStamps() {
     try {
       await StorageService.setStamps(updated);
       setStamps(updated);
-      if (userId) await CloudStorageService.setStamps(userId, updated);
+      if (userId) CloudStorageService.setStamps(userId, updated);
     } catch (error) {
       console.error('Error deleting stamp:', error);
     }

@@ -12,9 +12,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useNavigation,
+  useRoute,
   useFocusEffect,
   CompositeNavigationProp,
 } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useStamps } from '../hooks/useStamps';
@@ -72,6 +74,7 @@ function AddVolumeCard({ onPress }: { onPress: () => void }) {
 
 export function PassportScreen() {
   const navigation = useNavigation<PassportNavigation>();
+  const route = useRoute<RouteProp<PassportStackParamList, 'PassportHome'>>();
   const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
   const { userName, reloadUserName } = useUserName();
   const { volumes, addVolume, deleteVolume, syncVolumesFromCloud } = useVolumes();
@@ -87,14 +90,29 @@ export function PassportScreen() {
 
   // Reload stamps, volumes and userName when screen comes into focus, pulling
   // the latest from the cloud first so changes made on another device show up.
+  // If autoOpen param is set (navigated here after creating a stamp), open the
+  // most recent volume automatically so the new stamp is immediately visible.
   useFocusEffect(
     useCallback(() => {
       (async () => {
         await Promise.all([syncStampsFromCloud(), syncVolumesFromCloud()]);
         await loadStamps();
         await reloadUserName();
+        if (route.params?.autoOpen) {
+          navigation.setParams({ autoOpen: undefined });
+          // volumes state may not reflect the latest yet; read from the
+          // hook's in-memory list to pick the most recent passport.
+          const target = volumes[volumes.length - 1] ?? null;
+          if (target && !isOpen) {
+            setSelectedVolume(target);
+            shelfOpacity.setValue(0);
+            shelfScale.setValue(0.94);
+            setIsOpen(true);
+            Animated.timing(contentOpacity, { toValue: 1, duration: 240, useNativeDriver: true }).start();
+          }
+        }
       })();
-    }, [syncStampsFromCloud, syncVolumesFromCloud, loadStamps, reloadUserName]),
+    }, [syncStampsFromCloud, syncVolumesFromCloud, loadStamps, reloadUserName, route.params?.autoOpen]),
   );
 
   // Control tab bar style — keep it visible in both the closed (shelf) and
