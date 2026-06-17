@@ -61,7 +61,13 @@ export function useVolumes() {
   // the other's.
   const syncVolumesFromCloud = useCallback(async (): Promise<boolean> => {
     if (!userId) return false;
-    const cloud = await CloudStorageService.getUserData(userId);
+    let cloud: Awaited<ReturnType<typeof CloudStorageService.getUserData>>;
+    try {
+      cloud = await CloudStorageService.getUserData(userId);
+    } catch (error) {
+      console.warn('Could not reach cloud to sync volumes:', error);
+      return false;
+    }
     if (!cloud?.volumes) return false;
     const cloudVolumes = cloud.volumes.length > 0 ? cloud.volumes : [DEFAULT_VOLUME];
     const local = await StorageService.getVolumes() ?? [DEFAULT_VOLUME];
@@ -75,20 +81,29 @@ export function useVolumes() {
   }, [userId]);
 
   // On first sign-in, if the account has no cloud volumes yet, seed the
-  // cloud with this device's local data.
+  // cloud with this device's local data. Checks the cloud directly (rather
+  // than relying on syncVolumesFromCloud's true/false) so a failed read is
+  // never mistaken for "cloud confirmed empty", which would otherwise
+  // overwrite real cloud data with this device's (possibly empty) local
+  // state — see the matching fix in useStamps.ts.
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const applied = await syncVolumesFromCloud();
-      if (!applied) {
-        // Read from storage (not volumesRef) since it reflects this account's
-        // local data — in-memory state may still hold a previous account's
-        // volumes if it hasn't reloaded yet.
-        const local = await StorageService.getVolumes() ?? [DEFAULT_VOLUME];
-        await CloudStorageService.setVolumes(userId, local);
+      let cloud: Awaited<ReturnType<typeof CloudStorageService.getUserData>>;
+      try {
+        cloud = await CloudStorageService.getUserData(userId);
+      } catch (error) {
+        console.warn('Could not verify cloud volumes before seeding, skipping:', error);
+        return;
       }
+      if (cloud?.volumes) return; // cloud already has data; syncVolumesFromCloud merges it in
+      // Read from storage (not volumesRef) since it reflects this account's
+      // local data — in-memory state may still hold a previous account's
+      // volumes if it hasn't reloaded yet.
+      const local = await StorageService.getVolumes() ?? [DEFAULT_VOLUME];
+      await CloudStorageService.setVolumes(userId, local);
     })();
-  }, [userId, syncVolumesFromCloud]);
+  }, [userId]);
 
   const addVolume = useCallback(async (name: string): Promise<Volume> => {
     const current = await StorageService.getVolumes();

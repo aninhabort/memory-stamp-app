@@ -47,7 +47,9 @@ export function CreateStampScreen({ navigation }: Props) {
 
   const handleSubmit = async (data: StampFormData) => {
     await addStamp(data);
-    navigation.navigate('Passport');
+    // Land on PassportHome (not whatever screen was last open in that stack)
+    // with autoOpen so the newly created stamp is immediately visible.
+    navigation.navigate('Passport', { screen: 'PassportHome', params: { autoOpen: true } });
   };
 
   const handleDiscard = () => {

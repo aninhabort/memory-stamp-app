@@ -2,7 +2,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { Stamp, Volume } from '../types';
 
-interface UserData {
+export interface UserData {
   stamps?: Stamp[];
   volumes?: Volume[];
   userName?: string;
@@ -21,6 +21,11 @@ const stripUndefined = <T>(value: T): T => JSON.parse(JSON.stringify(value));
  * document per user, keyed by their Firebase Auth uid.
  */
 export const CloudStorageService = {
+  // Returns null only when the document is confirmed not to exist. If the
+  // fetch itself fails, this throws instead of returning null — callers must
+  // not treat "couldn't check" the same as "confirmed empty", since doing so
+  // risks overwriting real cloud data with an empty local state on the next
+  // sign-in from a fresh device.
   async getUserData(uid: string): Promise<UserData | null> {
     try {
       const snapshot = await getDoc(userDoc(uid));
@@ -29,19 +34,13 @@ export const CloudStorageService = {
       // Right after launch the device's network connection isn't always
       // ready yet, which Firestore reports as "client is offline" even
       // though the request would succeed moments later. Retry once after a
-      // short delay before giving up and falling back to local data.
+      // short delay before giving up.
       if (error instanceof Error && error.message.includes('client is offline')) {
         await new Promise((resolve) => setTimeout(resolve, 1500));
-        try {
-          const snapshot = await getDoc(userDoc(uid));
-          return snapshot.exists() ? (snapshot.data() as UserData) : null;
-        } catch (retryError) {
-          console.warn('Cloud data unavailable, using local data:', retryError);
-          return null;
-        }
+        const snapshot = await getDoc(userDoc(uid));
+        return snapshot.exists() ? (snapshot.data() as UserData) : null;
       }
-      console.error('Error loading cloud data:', error);
-      return null;
+      throw error;
     }
   },
 

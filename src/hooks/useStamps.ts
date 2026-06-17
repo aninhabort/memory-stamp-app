@@ -171,7 +171,13 @@ export function useStamps() {
   // the other's.
   const syncStampsFromCloud = useCallback(async (): Promise<boolean> => {
     if (!userId) return false;
-    const cloud = await CloudStorageService.getUserData(userId);
+    let cloud: Awaited<ReturnType<typeof CloudStorageService.getUserData>>;
+    try {
+      cloud = await CloudStorageService.getUserData(userId);
+    } catch (error) {
+      console.warn('Could not reach cloud to sync stamps:', error);
+      return false;
+    }
     if (!cloud?.stamps) return false;
     const cloudStamps = migrateStamps(cloud.stamps);
     const merged = mergeStamps(stampsRef.current, cloudStamps);
@@ -184,20 +190,29 @@ export function useStamps() {
   }, [userId]);
 
   // On first sign-in, if the account has no cloud stamps yet, seed the
-  // cloud with this device's local data.
+  // cloud with this device's local data. Checks the cloud directly (rather
+  // than relying on syncStampsFromCloud's true/false) so a failed read —
+  // e.g. network not ready yet right after launch — is never mistaken for
+  // "cloud confirmed empty", which would otherwise overwrite real cloud data
+  // with this device's (possibly empty) local state.
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const applied = await syncStampsFromCloud();
-      if (!applied) {
-        // Read from storage (not stampsRef) since it reflects this account's
-        // local data — in-memory state may still hold a previous account's
-        // stamps if it hasn't reloaded yet.
-        const local = await StorageService.getStamps() ?? [];
-        await CloudStorageService.setStamps(userId, local);
+      let cloud: Awaited<ReturnType<typeof CloudStorageService.getUserData>>;
+      try {
+        cloud = await CloudStorageService.getUserData(userId);
+      } catch (error) {
+        console.warn('Could not verify cloud stamps before seeding, skipping:', error);
+        return;
       }
+      if (cloud?.stamps) return; // cloud already has data; syncStampsFromCloud merges it in
+      // Read from storage (not stampsRef) since it reflects this account's
+      // local data — in-memory state may still hold a previous account's
+      // stamps if it hasn't reloaded yet.
+      const local = await StorageService.getStamps() ?? [];
+      await CloudStorageService.setStamps(userId, local);
     })();
-  }, [userId, syncStampsFromCloud]);
+  }, [userId]);
 
   const addStamp = useCallback(async (data: Omit<Stamp, 'id' | 'createdAt'>) => {
     const stamp: Stamp = {
