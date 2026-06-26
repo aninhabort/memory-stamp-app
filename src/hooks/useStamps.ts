@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { Stamp } from '../types';
 import { StorageService } from '../services/storage';
 import { CloudStorageService } from '../services/cloudStorage';
+import { ImageStorageService } from '../services/imageStorage';
 import { useAuth } from '../contexts/AuthContext';
 
 const SAMPLE_STAMPS: Stamp[] = [
@@ -210,9 +211,38 @@ export function useStamps() {
       // local data — in-memory state may still hold a previous account's
       // stamps if it hasn't reloaded yet.
       const local = await StorageService.getStamps() ?? [];
-      await CloudStorageService.setStamps(userId, local);
+      // Upload any on-device photo URIs first, otherwise the seeded cloud
+      // document would carry local file:// paths that are meaningless once
+      // read back from another device.
+      const seeded = await Promise.all(
+        local.map(async (s) => ({
+          ...s,
+          photos: await ImageStorageService.uploadStampPhotos(userId, s.id, s.photos ?? []),
+        })),
+      );
+      await StorageService.setStamps(seeded);
+      setStamps(seeded);
+      await CloudStorageService.setStamps(userId, seeded);
     })();
   }, [userId]);
+
+  // Uploads any on-device photo URIs for a stamp to Firebase Storage, then
+  // patches the stamp with the resulting download URLs before pushing to
+  // Firestore. Local file:// URIs are only valid on the device that created
+  // them, so writing them to the cloud as-is would leave the image
+  // unreachable after a reinstall or on another device. Runs in the
+  // background (not awaited by callers) so it never blocks navigation.
+  const persistStampPhotos = useCallback(async (uid: string, stampId: string, photos: string[]) => {
+    try {
+      const uploaded = await ImageStorageService.uploadStampPhotos(uid, stampId, photos);
+      const updated = stampsRef.current.map((s) => (s.id === stampId ? { ...s, photos: uploaded } : s));
+      await StorageService.setStamps(updated);
+      setStamps(updated);
+      await CloudStorageService.setStamps(uid, updated);
+    } catch (error) {
+      console.warn('Error uploading stamp photos to cloud storage:', error);
+    }
+  }, []);
 
   const addStamp = useCallback(async (data: Omit<Stamp, 'id' | 'createdAt'>) => {
     const stamp: Stamp = {
@@ -224,13 +254,14 @@ export function useStamps() {
     try {
       await StorageService.setStamps(updated);
       setStamps(updated);
-      // Cloud sync is best-effort in the background — not awaited so it
-      // never blocks navigation when Firestore is slow or offline.
-      if (userId) CloudStorageService.setStamps(userId, updated);
+      // Cloud sync (and any photo upload) is best-effort in the background —
+      // not awaited so it never blocks navigation when Firestore/Storage are
+      // slow or offline.
+      if (userId) persistStampPhotos(userId, stamp.id, stamp.photos ?? []);
     } catch (error) {
       console.error('Error adding stamp:', error);
     }
-  }, [userId]);
+  }, [userId, persistStampPhotos]);
 
   const updateStamp = useCallback(async (id: string, data: Omit<Stamp, 'id' | 'createdAt'>) => {
     const updated = stampsRef.current.map((s) =>
@@ -239,18 +270,22 @@ export function useStamps() {
     try {
       await StorageService.setStamps(updated);
       setStamps(updated);
-      if (userId) CloudStorageService.setStamps(userId, updated);
+      if (userId) persistStampPhotos(userId, id, updated.find((s) => s.id === id)?.photos ?? []);
     } catch (error) {
       console.error('Error updating stamp:', error);
     }
-  }, [userId]);
+  }, [userId, persistStampPhotos]);
 
   const deleteStamp = useCallback(async (id: string) => {
+    const toDelete = stampsRef.current.find((s) => s.id === id);
     const updated = stampsRef.current.filter((s) => s.id !== id);
     try {
       await StorageService.setStamps(updated);
       setStamps(updated);
-      if (userId) CloudStorageService.setStamps(userId, updated);
+      if (userId) {
+        CloudStorageService.setStamps(userId, updated);
+        if (toDelete?.photos?.length) ImageStorageService.deleteStampPhotos(toDelete.photos);
+      }
     } catch (error) {
       console.error('Error deleting stamp:', error);
     }
