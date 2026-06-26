@@ -184,7 +184,16 @@ function AppContent() {
     if (shouldShowSignUp) {
       return (
         <SignUpScreen
-          onSignUp={signup}
+          onSignUp={async (name, email, password) => {
+            try {
+              await signup(name, email, password);
+            } catch (error) {
+              Alert.alert(
+                'Sign Up Failed',
+                error instanceof Error ? error.message : 'Could not create your account.'
+              );
+            }
+          }}
           onNavigateToLogin={() => setShowSignUp(false)}
         />
       );

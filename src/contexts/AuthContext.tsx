@@ -1,13 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-  User
-} from 'firebase/auth';
-import { auth } from '../config/firebase';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from '../config/supabase';
 import { STORAGE_KEYS } from '../services/storage';
 
 interface AuthContextType {
@@ -32,103 +26,104 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [hasAccount, setHasAccount] = useState(false);
 
-  // Listen to Firebase auth state changes
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
-      if (user) {
-        // User is signed in
-        setIsAuthenticated(true);
-        setUserId(user.uid);
-        setUserEmail(user.email);
-        setHasAccount(true);
+  const applySession = async (session: Session | null) => {
+    if (session?.user) {
+      setIsAuthenticated(true);
+      setUserId(session.user.id);
+      setUserEmail(session.user.email ?? null);
+      setHasAccount(true);
 
-        // Load user name from AsyncStorage
-        try {
-          const storedName = await AsyncStorage.getItem(STORAGE_KEYS.USER_NAME);
-          setUserName(storedName);
-        } catch (error) {
-          console.error('Error loading user name:', error);
-        }
-      } else {
-        // User is signed out
-        setIsAuthenticated(false);
-        setUserId(null);
-        setUserEmail(null);
-        setUserName(null);
+      // Load user name from AsyncStorage
+      try {
+        const storedName = await AsyncStorage.getItem(STORAGE_KEYS.USER_NAME);
+        setUserName(storedName);
+      } catch (error) {
+        console.error('Error loading user name:', error);
       }
+    } else {
+      setIsAuthenticated(false);
+      setUserId(null);
+      setUserEmail(null);
+      setUserName(null);
+    }
+  };
+
+  // Listen to Supabase auth state changes
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      applySession(session);
       setIsLoading(false);
     });
 
-    // Cleanup subscription on unmount
-    return unsubscribe;
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      applySession(session);
+    });
+
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   const signup = async (name: string, email: string, password: string) => {
-    try {
-      // Create user in Firebase
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+    const { data, error } = await supabase.auth.signUp({ email, password });
 
-      // Clear any leftover local data from a previously logged-in account on
-      // this device, so the new account starts with a clean passport.
-      await AsyncStorage.multiRemove([STORAGE_KEYS.STAMPS, STORAGE_KEYS.VOLUMES]);
-
-      // Store user name in AsyncStorage (Firebase doesn't store display names by default)
-      await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, name);
-
-      // State will be updated by onAuthStateChanged listener
-      setUserName(name);
-      setHasAccount(true);
-    } catch (error: any) {
-      console.error('Error signing up:', error);
-
-      // Provide user-friendly error messages
-      if (error.code === 'auth/email-already-in-use') {
+    if (error) {
+      const message = error.message.toLowerCase();
+      if (message.includes('already registered') || message.includes('already exists')) {
         throw new Error('This email is already registered');
-      } else if (error.code === 'auth/weak-password') {
+      } else if (message.includes('password')) {
         throw new Error('Password should be at least 6 characters');
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (message.includes('email')) {
         throw new Error('Invalid email address');
       }
-
-      throw error;
+      throw new Error(error.message);
     }
+
+    // Email confirmation is enabled in the Supabase project — there's no
+    // session yet, so there's nothing to log in to until the user confirms.
+    if (!data.session) {
+      throw new Error('Check your email to confirm your account before signing in.');
+    }
+
+    // Clear any leftover local data from a previously logged-in account on
+    // this device, so the new account starts with a clean passport.
+    await AsyncStorage.multiRemove([STORAGE_KEYS.STAMPS, STORAGE_KEYS.VOLUMES]);
+
+    // Store user name in AsyncStorage (kept outside Supabase Auth's own profile fields)
+    await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, name);
+
+    // State will be updated by onAuthStateChange listener
+    setUserName(name);
+    setHasAccount(true);
   };
 
   const login = async (email: string, password: string) => {
-    try {
-      // Sign in with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-      // State will be updated by onAuthStateChanged listener
-    } catch (error: any) {
-      console.error('Error logging in:', error);
-
-      // Provide user-friendly error messages
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+    if (error) {
+      const message = error.message.toLowerCase();
+      if (message.includes('invalid login credentials')) {
         throw new Error('Invalid email or password');
-      } else if (error.code === 'auth/invalid-email') {
+      } else if (message.includes('email')) {
         throw new Error('Invalid email address');
-      } else if (error.code === 'auth/too-many-requests') {
+      } else if (message.includes('rate limit')) {
         throw new Error('Too many failed attempts. Please try again later.');
       }
-
-      throw error;
+      throw new Error(error.message);
     }
+
+    // State will be updated by onAuthStateChange listener
   };
 
   const logout = async () => {
-    try {
-      // Sign out from Firebase
-      await signOut(auth);
-
-      // Clear user name from AsyncStorage (stamps data is preserved)
-      await AsyncStorage.removeItem(STORAGE_KEYS.USER_NAME);
-
-      // State will be updated by onAuthStateChanged listener
-    } catch (error) {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
       console.error('Error logging out:', error);
       throw error;
     }
+
+    // Clear user name from AsyncStorage (stamps data is preserved)
+    await AsyncStorage.removeItem(STORAGE_KEYS.USER_NAME);
+
+    // State will be updated by onAuthStateChange listener
   };
 
   return (
