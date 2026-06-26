@@ -66,15 +66,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.signUp({ email, password });
 
     if (error) {
-      const message = error.message.toLowerCase();
-      if (message.includes('already registered') || message.includes('already exists')) {
-        throw new Error('This email is already registered');
-      } else if (message.includes('password')) {
-        throw new Error('Password should be at least 6 characters');
-      } else if (message.includes('email')) {
-        throw new Error('Invalid email address');
+      // Match on the API's stable error code rather than the message text —
+      // messages like "email rate limit exceeded" contain the word "email"
+      // and would otherwise be misreported as an invalid email address.
+      switch (error.code) {
+        case 'user_already_exists':
+        case 'email_exists':
+          throw new Error('This email is already registered');
+        case 'weak_password':
+          throw new Error('Password should be at least 6 characters');
+        case 'email_address_invalid':
+          throw new Error('Invalid email address');
+        case 'over_email_send_rate_limit':
+          throw new Error('Too many attempts. Please wait a few minutes and try again.');
+        case 'signup_disabled':
+          throw new Error('Sign ups are currently disabled.');
+        default:
+          throw new Error(error.message);
       }
-      throw new Error(error.message);
     }
 
     // Email confirmation is enabled in the Supabase project — there's no
@@ -99,15 +108,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      const message = error.message.toLowerCase();
-      if (message.includes('invalid login credentials')) {
-        throw new Error('Invalid email or password');
-      } else if (message.includes('email')) {
-        throw new Error('Invalid email address');
-      } else if (message.includes('rate limit')) {
-        throw new Error('Too many failed attempts. Please try again later.');
+      switch (error.code) {
+        case 'invalid_credentials':
+          throw new Error('Invalid email or password');
+        case 'email_not_confirmed':
+          throw new Error('Please confirm your email before signing in.');
+        case 'over_request_rate_limit':
+          throw new Error('Too many failed attempts. Please try again later.');
+        default:
+          throw new Error(error.message);
       }
-      throw new Error(error.message);
     }
 
     // State will be updated by onAuthStateChange listener

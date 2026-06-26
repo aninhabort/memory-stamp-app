@@ -121,12 +121,23 @@ function migrateStamps(stamps: Stamp[]): Stamp[] {
 }
 
 // Combines two stamp lists into their union, deduped by id. Used to
-// reconcile stamps created independently on different devices instead of
-// letting one device's data silently overwrite the other's.
+// reconcile stamps created/edited independently on different devices (or on
+// this device while a background cloud push from another screen is still
+// in flight) instead of letting one side's data silently overwrite the
+// other's. When both sides have the same id, the one with the more recent
+// updatedAt (falling back to createdAt for stamps from before that field
+// existed) wins, rather than always preferring one side.
 function mergeStamps(a: Stamp[], b: Stamp[]): Stamp[] {
   const map = new Map<string, Stamp>();
-  for (const s of a) map.set(s.id, s);
-  for (const s of b) map.set(s.id, s);
+  const lastModified = (s: Stamp) => s.updatedAt ?? s.createdAt;
+  const put = (s: Stamp) => {
+    const existing = map.get(s.id);
+    if (!existing || lastModified(s) > lastModified(existing)) {
+      map.set(s.id, s);
+    }
+  };
+  for (const s of a) put(s);
+  for (const s of b) put(s);
   return Array.from(map.values());
 }
 
@@ -181,7 +192,15 @@ export function useStamps() {
     }
     if (!cloud?.stamps) return false;
     const cloudStamps = migrateStamps(cloud.stamps);
-    const merged = mergeStamps(stampsRef.current, cloudStamps);
+    // Merge against the freshest on-disk state, not this hook instance's
+    // in-memory snapshot — another instance (e.g. the create-stamp screen)
+    // may have just written a new stamp to storage that this instance's
+    // state hasn't picked up yet. The cloud's copy can also lag behind a
+    // moment (the upload that pushes a new stamp runs in the background),
+    // so merging against a stale in-memory snapshot risked overwriting
+    // storage with a copy that was missing that stamp.
+    const freshLocal = await StorageService.getStamps() ?? stampsRef.current;
+    const merged = mergeStamps(freshLocal, cloudStamps);
     await StorageService.setStamps(merged);
     setStamps(merged);
     if (merged.length !== cloudStamps.length) {
@@ -245,10 +264,12 @@ export function useStamps() {
   }, []);
 
   const addStamp = useCallback(async (data: Omit<Stamp, 'id' | 'createdAt'>) => {
+    const now = new Date().toISOString();
     const stamp: Stamp = {
       ...data,
       id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     };
     const updated = [...stampsRef.current, stamp];
     try {
@@ -265,7 +286,7 @@ export function useStamps() {
 
   const updateStamp = useCallback(async (id: string, data: Omit<Stamp, 'id' | 'createdAt'>) => {
     const updated = stampsRef.current.map((s) =>
-      s.id === id ? { ...s, ...data } : s
+      s.id === id ? { ...s, ...data, updatedAt: new Date().toISOString() } : s
     );
     try {
       await StorageService.setStamps(updated);

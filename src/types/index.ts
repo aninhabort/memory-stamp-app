@@ -39,6 +39,9 @@ export interface Stamp {
   /** ISO timestamp of when the stamp was created */
   createdAt: string;
 
+  /** ISO timestamp of the last edit. Used to resolve sync conflicts in favor of the most recent write. */
+  updatedAt?: string;
+
   /** Volume/passport ID this stamp belongs to (defaults to 'default' volume when absent) */
   volumeId?: string;
 }

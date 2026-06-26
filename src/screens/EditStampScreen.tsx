@@ -64,9 +64,12 @@ export function EditStampScreen({ route, navigation }: Props) {
 
   const handleSubmit = async (data: StampFormData) => {
     await updateStamp(stamp.id, data);
-    // Navigate to StampDetail with the updated stamp data so the detail screen
-    // reflects the edits immediately rather than showing stale route.params.
-    navigation.navigate('StampDetail', { stamp: { ...stamp, ...data } });
+    // Pop back to the existing StampDetail in the stack (rather than
+    // navigate, which in React Navigation v7 pushes a new screen instead of
+    // reusing one already in the stack) with the updated stamp data so the
+    // detail screen reflects the edits immediately and Back returns to it,
+    // not to this edit form.
+    navigation.popTo('StampDetail', { stamp: { ...stamp, ...data } });
   };
 
   const handleDiscard = () => {
