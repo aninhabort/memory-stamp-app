@@ -29,7 +29,7 @@ import {
   SPACING,
 } from '../constants/theme';
 import { Stamp } from '../types';
-import { ColeçãoStackParamList, RootTabParamList } from '../navigation/types';
+import { CollectionStackParamList, RootTabParamList } from '../navigation/types';
 import {
   resolveCoverPhoto,
   getInitials,
@@ -37,9 +37,9 @@ import {
 } from '../utils/stampUtils';
 
 // Composite type gives access to both the stack's own routes (StampDetail) and
-// the parent tab routes (Criar), eliminating the `as any` cast.
+// the parent tab routes (Create), eliminating the `as any` cast.
 type CollectionNavigation = CompositeNavigationProp<
-  NativeStackNavigationProp<ColeçãoStackParamList, 'ColeçãoHome'>,
+  NativeStackNavigationProp<CollectionStackParamList, 'CollectionHome'>,
   BottomTabNavigationProp<RootTabParamList>
 >;
 
@@ -104,7 +104,7 @@ export function CollectionScreen() {
   const handleStampPress = (stamp: Stamp) => navigation.navigate('StampDetail', { stamp });
   const handleLatestLogPress = () => { if (latestLog) navigation.navigate('StampDetail', { stamp: latestLog }); };
   // Composite navigation type already includes the parent tab routes.
-  const handleAddPress = () => navigation.navigate('Criar');
+  const handleAddPress = () => navigation.navigate('Create');
 
   // ── Render helpers ────────────────────────────────────────────────────────
 

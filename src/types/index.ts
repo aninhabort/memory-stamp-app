@@ -44,6 +44,14 @@ export interface Stamp {
 
   /** Volume/passport ID this stamp belongs to (defaults to 'default' volume when absent) */
   volumeId?: string;
+
+  /**
+   * ISO timestamp set when the stamp is deleted. Kept (instead of removing
+   * the record outright) as a tombstone so that a sync from another device
+   * still holding the pre-deletion copy can't resurrect it — the tombstone's
+   * updatedAt always wins the last-write-wins merge. Hidden from the UI.
+   */
+  deletedAt?: string;
 }
 
 /**
@@ -65,4 +73,10 @@ export interface Volume {
 
   /** ISO timestamp of when the volume was created */
   createdAt: string;
+
+  /** ISO timestamp of the last change (creation or deletion). Used to resolve sync conflicts in favor of the most recent write. */
+  updatedAt?: string;
+
+  /** ISO timestamp set when the volume is deleted. See `Stamp.deletedAt` for why this is a tombstone rather than an outright removal. */
+  deletedAt?: string;
 }

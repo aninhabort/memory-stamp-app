@@ -19,10 +19,10 @@ import {
   SPACING,
 } from '../constants/theme';
 import { Stamp } from '../types';
-import { BuscarStackParamList } from '../navigation/types';
+import { SearchStackParamList } from '../navigation/types';
 import { CATEGORY_LABELS_EN, getEntryCode } from '../utils/stampUtils';
 
-type BuscarNavigation = NativeStackNavigationProp<BuscarStackParamList, 'BuscarHome'>;
+type SearchNavigation = NativeStackNavigationProp<SearchStackParamList, 'SearchHome'>;
 
 // Category filter chips, "All" plus every stamp category.
 const CATEGORY_FILTERS: { value: Stamp['category'] | 'all'; label: string }[] = [
@@ -34,7 +34,7 @@ const CATEGORY_FILTERS: { value: Stamp['category'] | 'all'; label: string }[] = 
 ];
 
 export function SearchScreen() {
-  const navigation = useNavigation<BuscarNavigation>();
+  const navigation = useNavigation<SearchNavigation>();
   const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<Stamp['category'] | 'all'>('all');

@@ -53,24 +53,27 @@ export const CloudStorageService = {
     };
   },
 
+  // These throw on failure (instead of swallowing the error) so callers can
+  // tell a failed push apart from a successful one and record it as a
+  // pending sync to retry later — see services/pendingSync.ts.
   async setStamps(uid: string, stamps: Stamp[]): Promise<void> {
     const { error } = await supabase
       .from('user_data')
       .upsert({ user_id: uid, stamps }, { onConflict: 'user_id' });
-    if (error) console.error('Error saving stamps to cloud:', error);
+    if (error) throw error;
   },
 
   async setVolumes(uid: string, volumes: Volume[]): Promise<void> {
     const { error } = await supabase
       .from('user_data')
       .upsert({ user_id: uid, volumes }, { onConflict: 'user_id' });
-    if (error) console.error('Error saving volumes to cloud:', error);
+    if (error) throw error;
   },
 
   async setUserName(uid: string, userName: string): Promise<void> {
     const { error } = await supabase
       .from('user_data')
       .upsert({ user_id: uid, user_name: userName }, { onConflict: 'user_id' });
-    if (error) console.error('Error saving user name to cloud:', error);
+    if (error) throw error;
   },
 };

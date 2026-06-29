@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../config/supabase';
-import { STORAGE_KEYS } from '../services/storage';
+import { StorageService } from '../services/storage';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -28,14 +27,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const applySession = async (session: Session | null) => {
     if (session?.user) {
+      const uid = session.user.id;
+      // One-time, best-effort migration of this device's pre-namespacing
+      // local data into this account's own keys. Must finish before userId
+      // is published, since every hook gates its storage reads on userId
+      // being set and reads from the now-namespaced keys.
+      await StorageService.migrateLegacyData(uid);
+
       setIsAuthenticated(true);
-      setUserId(session.user.id);
+      setUserId(uid);
       setUserEmail(session.user.email ?? null);
       setHasAccount(true);
 
-      // Load user name from AsyncStorage
+      // Load user name from this account's own namespaced storage
       try {
-        const storedName = await AsyncStorage.getItem(STORAGE_KEYS.USER_NAME);
+        const storedName = await StorageService.getUserName(uid);
         setUserName(storedName);
       } catch (error) {
         console.error('Error loading user name:', error);
@@ -92,12 +98,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('Check your email to confirm your account before signing in.');
     }
 
-    // Clear any leftover local data from a previously logged-in account on
-    // this device, so the new account starts with a clean passport.
-    await AsyncStorage.multiRemove([STORAGE_KEYS.STAMPS, STORAGE_KEYS.VOLUMES]);
-
-    // Store user name in AsyncStorage (kept outside Supabase Auth's own profile fields)
-    await AsyncStorage.setItem(STORAGE_KEYS.USER_NAME, name);
+    // Each account's local data lives under its own namespaced storage key
+    // (see services/storage.ts), so a brand-new account is naturally
+    // isolated from whatever a previous account left on this device —
+    // there's nothing to clear here.
+    const uid = data.session.user.id;
+    await StorageService.setUserName(uid, name);
 
     // State will be updated by onAuthStateChange listener
     setUserName(name);
@@ -130,9 +136,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
 
-    // Clear user name from AsyncStorage (stamps data is preserved)
-    await AsyncStorage.removeItem(STORAGE_KEYS.USER_NAME);
-
+    // Nothing to clear: this account's data lives under its own namespaced
+    // storage key, so the next account signed into this device can only
+    // ever read its own keys, never this one's.
     // State will be updated by onAuthStateChange listener
   };
 

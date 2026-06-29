@@ -115,21 +115,15 @@ export function PassportScreen() {
     }, [syncStampsFromCloud, syncVolumesFromCloud, loadStamps, reloadUserName, route.params?.autoOpen]),
   );
 
-  // Control tab bar style — keep it visible in both the closed (shelf) and
-  // open (volume) states, only restyling it while a volume is open.
+  // Hide tab bar on this screen
   useEffect(() => {
     const parent = navigation.getParent();
     parent?.setOptions({
-      tabBarStyle: isOpen
-        ? {
-            backgroundColor: COLORS.primary,
-            borderTopWidth: 0,
-            height: 60 + insets.bottom,
-            paddingBottom: 8 + insets.bottom,
-          }
-        : undefined,
+      tabBarStyle: {
+        display: 'none',
+      },
     });
-  }, [isOpen, navigation, insets.bottom]);
+  }, [navigation]);
 
   // ── Open volume ───────────────────────────────────────────────────────────
   const handleVolumePress = (volume: Volume) => {

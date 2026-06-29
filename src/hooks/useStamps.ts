@@ -1,8 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { AppState } from 'react-native';
 import { Stamp } from '../types';
 import { StorageService } from '../services/storage';
 import { CloudStorageService } from '../services/cloudStorage';
 import { ImageStorageService } from '../services/imageStorage';
+import { PendingSyncService } from '../services/pendingSync';
 import { useAuth } from '../contexts/AuthContext';
 
 const SAMPLE_STAMPS: Stamp[] = [
@@ -126,7 +128,10 @@ function migrateStamps(stamps: Stamp[]): Stamp[] {
 // in flight) instead of letting one side's data silently overwrite the
 // other's. When both sides have the same id, the one with the more recent
 // updatedAt (falling back to createdAt for stamps from before that field
-// existed) wins, rather than always preferring one side.
+// existed) wins, rather than always preferring one side. Deletions are
+// tombstones (deletedAt set, alongside an updatedAt bump) rather than
+// outright removals, so this same "most recent wins" rule also keeps a
+// delete from being undone by a stale copy still held by the other side.
 function mergeStamps(a: Stamp[], b: Stamp[]): Stamp[] {
   const map = new Map<string, Stamp>();
   const lastModified = (s: Stamp) => s.updatedAt ?? s.createdAt;
@@ -141,8 +146,21 @@ function mergeStamps(a: Stamp[], b: Stamp[]): Stamp[] {
   return Array.from(map.values());
 }
 
+// Fingerprint of a stamp list's actual content (id + freshness + tombstone
+// state). Used to decide whether a merge result needs to be pushed back to
+// the cloud — comparing list length alone misses edits/deletions that don't
+// change the item count.
+function stampsSignature(items: Stamp[]): string {
+  return items
+    .map((s) => `${s.id}:${s.updatedAt ?? s.createdAt}:${s.deletedAt ?? ''}`)
+    .sort()
+    .join('|');
+}
+
 export function useStamps() {
   const { userId } = useAuth();
+  // Includes tombstoned (deletedAt) entries — needed locally so merges never
+  // resurrect a delete. Filtered for consumers via `visibleStamps` below.
   const [stamps, setStamps] = useState<Stamp[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -151,21 +169,39 @@ export function useStamps() {
   const stampsRef = useRef<Stamp[]>([]);
   useEffect(() => { stampsRef.current = stamps; }, [stamps]);
 
-  const loadStamps = useCallback(async () => {
+  // Pushes to the cloud and never throws: on failure it records a pending
+  // sync flag (see services/pendingSync.ts) instead, so a flaky connection
+  // never blocks the offline-first local write that already happened.
+  const pushStampsToCloud = useCallback(async (uid: string, items: Stamp[]) => {
     try {
-      const parsed = await StorageService.getStamps();
+      await CloudStorageService.setStamps(uid, items);
+      await PendingSyncService.clearPending(uid, 'stamps');
+    } catch (error) {
+      console.warn('Could not push stamps to cloud, will retry later:', error);
+      await PendingSyncService.markPending(uid, 'stamps');
+    }
+  }, []);
+
+  const loadStamps = useCallback(async () => {
+    if (!userId) {
+      setStamps([]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const parsed = await StorageService.getStamps(userId);
       if (parsed !== null) {
         const migrated = migrateStamps(parsed);
         const hadMigration = migrated.some(
           (s, i) => s.icon !== parsed[i].icon || !parsed[i].photos,
         );
         if (hadMigration) {
-          await StorageService.setStamps(migrated);
+          await StorageService.setStamps(userId, migrated);
         }
         setStamps(migrated);
       } else {
         // Start with empty stamps for new users
-        await StorageService.setStamps([]);
+        await StorageService.setStamps(userId, []);
         setStamps([]);
       }
     } catch (error) {
@@ -173,7 +209,26 @@ export function useStamps() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
+
+  // Retries a previously failed cloud push, if one is still pending for
+  // this account.
+  const flushPendingStamps = useCallback(async () => {
+    if (!userId) return;
+    const pending = await PendingSyncService.isPending(userId, 'stamps');
+    if (!pending) return;
+    const local = await StorageService.getStamps(userId) ?? stampsRef.current;
+    await pushStampsToCloud(userId, local);
+  }, [userId, pushStampsToCloud]);
+
+  // Retry on app foreground — covers the case where the failed push
+  // happened while the device had no connectivity at all.
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') flushPendingStamps();
+    });
+    return () => subscription.remove();
+  }, [flushPendingStamps]);
 
   // Pulls the latest stamps from the cloud, if the signed-in account has
   // any saved there, and merges them with this device's local stamps
@@ -183,6 +238,7 @@ export function useStamps() {
   // the other's.
   const syncStampsFromCloud = useCallback(async (): Promise<boolean> => {
     if (!userId) return false;
+    await flushPendingStamps();
     let cloud: Awaited<ReturnType<typeof CloudStorageService.getUserData>>;
     try {
       cloud = await CloudStorageService.getUserData(userId);
@@ -199,15 +255,18 @@ export function useStamps() {
     // moment (the upload that pushes a new stamp runs in the background),
     // so merging against a stale in-memory snapshot risked overwriting
     // storage with a copy that was missing that stamp.
-    const freshLocal = await StorageService.getStamps() ?? stampsRef.current;
+    const freshLocal = await StorageService.getStamps(userId) ?? stampsRef.current;
     const merged = mergeStamps(freshLocal, cloudStamps);
-    await StorageService.setStamps(merged);
+    await StorageService.setStamps(userId, merged);
     setStamps(merged);
-    if (merged.length !== cloudStamps.length) {
-      await CloudStorageService.setStamps(userId, merged);
+    // Push back whenever the merge actually changed something, not just
+    // when the item count moved — an edit or a delete can leave the count
+    // unchanged while still needing to reach the cloud.
+    if (stampsSignature(merged) !== stampsSignature(cloudStamps)) {
+      await pushStampsToCloud(userId, merged);
     }
     return true;
-  }, [userId]);
+  }, [userId, flushPendingStamps, pushStampsToCloud]);
 
   // On first sign-in, if the account has no cloud stamps yet, seed the
   // cloud with this device's local data. Checks the cloud directly (rather
@@ -226,10 +285,10 @@ export function useStamps() {
         return;
       }
       if (cloud?.stamps) return; // cloud already has data; syncStampsFromCloud merges it in
-      // Read from storage (not stampsRef) since it reflects this account's
-      // local data — in-memory state may still hold a previous account's
-      // stamps if it hasn't reloaded yet.
-      const local = await StorageService.getStamps() ?? [];
+      // Read from this account's own namespaced key — never another
+      // account's local data, even if this device was previously used by
+      // someone else, since each account's data lives under its own key.
+      const local = await StorageService.getStamps(userId) ?? [];
       // Upload any on-device photo URIs first, otherwise the seeded cloud
       // document would carry local file:// paths that are meaningless once
       // read back from another device.
@@ -239,15 +298,15 @@ export function useStamps() {
           photos: await ImageStorageService.uploadStampPhotos(userId, s.id, s.photos ?? []),
         })),
       );
-      await StorageService.setStamps(seeded);
+      await StorageService.setStamps(userId, seeded);
       setStamps(seeded);
-      await CloudStorageService.setStamps(userId, seeded);
+      await pushStampsToCloud(userId, seeded);
     })();
-  }, [userId]);
+  }, [userId, pushStampsToCloud]);
 
-  // Uploads any on-device photo URIs for a stamp to Firebase Storage, then
+  // Uploads any on-device photo URIs for a stamp to Supabase Storage, then
   // patches the stamp with the resulting download URLs before pushing to
-  // Firestore. Local file:// URIs are only valid on the device that created
+  // the cloud. Local file:// URIs are only valid on the device that created
   // them, so writing them to the cloud as-is would leave the image
   // unreachable after a reinstall or on another device. Runs in the
   // background (not awaited by callers) so it never blocks navigation.
@@ -255,15 +314,16 @@ export function useStamps() {
     try {
       const uploaded = await ImageStorageService.uploadStampPhotos(uid, stampId, photos);
       const updated = stampsRef.current.map((s) => (s.id === stampId ? { ...s, photos: uploaded } : s));
-      await StorageService.setStamps(updated);
+      await StorageService.setStamps(uid, updated);
       setStamps(updated);
-      await CloudStorageService.setStamps(uid, updated);
+      await pushStampsToCloud(uid, updated);
     } catch (error) {
       console.warn('Error uploading stamp photos to cloud storage:', error);
     }
-  }, []);
+  }, [pushStampsToCloud]);
 
   const addStamp = useCallback(async (data: Omit<Stamp, 'id' | 'createdAt'>) => {
+    if (!userId) return;
     const now = new Date().toISOString();
     const stamp: Stamp = {
       ...data,
@@ -273,48 +333,66 @@ export function useStamps() {
     };
     const updated = [...stampsRef.current, stamp];
     try {
-      await StorageService.setStamps(updated);
+      await StorageService.setStamps(userId, updated);
       setStamps(updated);
       // Cloud sync (and any photo upload) is best-effort in the background —
-      // not awaited so it never blocks navigation when Firestore/Storage are
-      // slow or offline.
-      if (userId) persistStampPhotos(userId, stamp.id, stamp.photos ?? []);
+      // not awaited so it never blocks navigation when the cloud is slow or
+      // offline.
+      persistStampPhotos(userId, stamp.id, stamp.photos ?? []);
     } catch (error) {
       console.error('Error adding stamp:', error);
     }
   }, [userId, persistStampPhotos]);
 
   const updateStamp = useCallback(async (id: string, data: Omit<Stamp, 'id' | 'createdAt'>) => {
+    if (!userId) return;
     const updated = stampsRef.current.map((s) =>
       s.id === id ? { ...s, ...data, updatedAt: new Date().toISOString() } : s
     );
     try {
-      await StorageService.setStamps(updated);
+      await StorageService.setStamps(userId, updated);
       setStamps(updated);
-      if (userId) persistStampPhotos(userId, id, updated.find((s) => s.id === id)?.photos ?? []);
+      persistStampPhotos(userId, id, updated.find((s) => s.id === id)?.photos ?? []);
     } catch (error) {
       console.error('Error updating stamp:', error);
     }
   }, [userId, persistStampPhotos]);
 
+  // Marks the stamp as deleted (tombstone) instead of removing it from the
+  // list outright, so that a sync from another device still holding the
+  // pre-deletion copy can't resurrect it — see mergeStamps above.
   const deleteStamp = useCallback(async (id: string) => {
+    if (!userId) return;
+    const now = new Date().toISOString();
     const toDelete = stampsRef.current.find((s) => s.id === id);
-    const updated = stampsRef.current.filter((s) => s.id !== id);
+    const updated = stampsRef.current.map((s) =>
+      s.id === id ? { ...s, deletedAt: now, updatedAt: now } : s
+    );
     try {
-      await StorageService.setStamps(updated);
+      await StorageService.setStamps(userId, updated);
       setStamps(updated);
-      if (userId) {
-        CloudStorageService.setStamps(userId, updated);
-        if (toDelete?.photos?.length) ImageStorageService.deleteStampPhotos(toDelete.photos);
-      }
+      pushStampsToCloud(userId, updated);
+      if (toDelete?.photos?.length) ImageStorageService.deleteStampPhotos(toDelete.photos);
     } catch (error) {
       console.error('Error deleting stamp:', error);
     }
-  }, [userId]);
+  }, [userId, pushStampsToCloud]);
 
   useEffect(() => {
     loadStamps();
   }, [loadStamps]);
 
-  return { stamps, loading, addStamp, updateStamp, deleteStamp, loadStamps, syncStampsFromCloud };
+  // Hide tombstoned entries from consumers — they only exist locally/in the
+  // cloud payload to keep deletions from being undone by sync.
+  const visibleStamps = useMemo(() => stamps.filter((s) => !s.deletedAt), [stamps]);
+
+  return {
+    stamps: visibleStamps,
+    loading,
+    addStamp,
+    updateStamp,
+    deleteStamp,
+    loadStamps,
+    syncStampsFromCloud,
+  };
 }
