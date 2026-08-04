@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -17,37 +17,42 @@ import {
   COLORS,
   FONTS,
   FONT_SIZES,
-  RADIUS,
   SHADOW_PAPER,
   SPACING,
 } from '../constants/theme';
 import type { Stamp } from '../types';
 import {
   CATEGORY_ICONS,
-  CATEGORY_LABELS,
+  CATEGORY_LABELS_EN,
   formatArrivalDate,
   formatDateLong,
-  formatDateShort,
   getCardRotation,
+  getEntryCode,
   resolvePhotos,
   resolveStampIcon,
 } from '../utils/stampUtils';
 import { PolaroidPhoto } from '../components/PolaroidPhoto';
 
 // StampDetail is registered in three different stacks (Passaporte, Coleção,
-// Buscar). A standalone param-list type keeps the component independent of any
-// specific stack and prevents incorrect navigation-prop inference.
+// Buscar). A standalone param-list keeps it independent of any specific stack.
 type StampDetailParamList = { StampDetail: { stamp: Stamp }; EditStamp: { stamp: Stamp } };
 type Props = NativeStackScreenProps<StampDetailParamList, 'StampDetail'>;
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-// Photo width: 20 px horizontal padding on each side of the scroll container.
-const PHOTO_WIDTH = SCREEN_WIDTH - 40;
-// Polaroid frame is noticeably narrower than its page so it reads as a
-// small floating print rather than a full-bleed image.
-const POLAROID_SIZE = PHOTO_WIDTH - 120;
+const SCREEN_WIDTH  = Dimensions.get('window').width;
+const PHOTO_WIDTH   = SCREEN_WIDTH - 40;
+// Larger print — polaroid fills most of its page, commanding the eye
+const POLAROID_SIZE = PHOTO_WIDTH - 70;
 
-// ── Componente ────────────────────────────────────────────────────────────────
+// Subtle dot grid shared with the form screens — reinforces paper texture
+const BG_DOTS: { top: number; left: number }[] = [];
+for (let row = 0; row < 22; row++) {
+  for (let col = 0; col < 6; col++) {
+    BG_DOTS.push({
+      top:  row * 80 + (col % 2) * 40,
+      left: col * (SCREEN_WIDTH / 5) + (row % 2) * 18,
+    });
+  }
+}
 
 export function StampDetailScreen({ route, navigation }: Props) {
   const { stamp } = route.params;
@@ -57,7 +62,14 @@ export function StampDetailScreen({ route, navigation }: Props) {
 
   const photos    = resolvePhotos(stamp);
   const hasPhotos = photos.length > 0;
-  const headerHeight   = insets.top + 60;
+  const headerHeight = insets.top + 60;
+
+  // Museum catalog number: MS prefix + entry code (e.g. PT-2026) + 6-char ID fragment
+  // Reads as: MS-PT-2026-A3B5C7
+  const archiveRef = useMemo(
+    () => `MS-${getEntryCode(stamp)}-${stamp.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`,
+    [stamp],
+  );
 
   const handlePhotoScroll = (event: { nativeEvent: { contentOffset: { x: number } } }) => {
     const index = Math.round(event.nativeEvent.contentOffset.x / PHOTO_WIDTH);
@@ -66,12 +78,12 @@ export function StampDetailScreen({ route, navigation }: Props) {
 
   const handleDelete = () => {
     Alert.alert(
-      'Apagar Memória',
-      'Esta entrada será permanentemente removida dos arquivos.',
+      'Remove from Archive',
+      'This entry will be permanently removed from the collection.',
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Keep Entry', style: 'cancel' },
         {
-          text: 'Apagar',
+          text: 'Remove',
           style: 'destructive',
           onPress: async () => {
             await deleteStamp(stamp.id);
@@ -86,176 +98,212 @@ export function StampDetailScreen({ route, navigation }: Props) {
   return (
     <View style={styles.screen}>
 
-      {/* ── Conteúdo em scroll ───────────────────────────────────────────── */}
+      {/* Paper texture — same dot grid as the form screens */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        {BG_DOTS.map((pos, i) => (
+          <View key={i} style={[styles.bgDot, { top: pos.top, left: pos.left }]} />
+        ))}
+      </View>
+
       <ScrollView
-        contentContainerStyle={[styles.container, { paddingTop: headerHeight + 24 }]}
+        contentContainerStyle={[styles.container, { paddingTop: headerHeight + 12 }]}
         showsVerticalScrollIndicator={false}
       >
 
-        {/* ── O Selo — carimbo inclinado, elemento central ────────────────── */}
-        <View style={styles.sealWrapper}>
-          {/* Sealou externo com borda e rotação */}
-          <View style={[styles.sealOuter, { borderColor: stamp.color }]}>
-            {/* Borda interna decorativa — 8px de inset */}
-            <View
-              style={[styles.sealInnerBorder, { borderColor: stamp.color }]}
-              pointerEvents="none"
-            />
-
-            {/* Ícone do stamp */}
-            <Ionicons name={resolveStampIcon(stamp)} size={48} color={stamp.color} />
-
-            {/* Título em maiúsculas estilo labelStamp */}
-            <Text style={[styles.sealTitle, { color: stamp.color }]} numberOfLines={2}>
-              {stamp.title.toUpperCase()}
-            </Text>
-
-            {/* Linha decorativa horizontal */}
-            <View style={[styles.sealLine, { backgroundColor: stamp.color }]} />
-
-            {/* Data de chegada */}
-            <Text style={[styles.sealDate, { color: stamp.color }]}>
-              {formatArrivalDate(stamp.date)}
-            </Text>
-          </View>
-
-        </View>
-
-        {/* ── Fotos (se existirem) — molduras estilo polaroid ──────────────── */}
-        {hasPhotos && (
-          <View style={styles.photoSection}>
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              decelerationRate="fast"
-              onScroll={handlePhotoScroll}
-              scrollEventThrottle={16}
-            >
-              {photos.map((uri, i) => (
-                <View key={i} style={styles.photoPage}>
-                  <PolaroidPhoto
-                    uri={uri}
-                    width={POLAROID_SIZE}
-                    height={POLAROID_SIZE}
-                    rotation={getCardRotation(`${stamp.id}-${i}`)}
-                    caption={formatDateShort(stamp.date)}
-                  />
-                </View>
-              ))}
-            </ScrollView>
-            {/* Indicador de foto atual para múltiplas fotos */}
-            {photos.length > 1 && (
-              <View style={styles.photoDots}>
-                {photos.map((_, i) => (
-                  <View
-                    key={i}
-                    style={[
-                      styles.dot,
-                      { backgroundColor: i === currentPhotoIndex ? COLORS.secondary : COLORS.outline },
-                    ]}
-                  />
+        {hasPhotos ? (
+          <>
+            {/* ── Photograph — the primary evidence ────────────────────────── */}
+            <View style={styles.photoSection}>
+              <Text style={styles.photoSectionLabel}>PHOTOGRAPHIC RECORD</Text>
+              <ScrollView
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                decelerationRate="fast"
+                onScroll={handlePhotoScroll}
+                scrollEventThrottle={16}
+              >
+                {photos.map((uri, i) => (
+                  <View key={i} style={styles.photoPage}>
+                    <PolaroidPhoto
+                      uri={uri}
+                      width={POLAROID_SIZE}
+                      height={POLAROID_SIZE}
+                      rotation={getCardRotation(`${stamp.id}-${i}`)}
+                      caption={formatArrivalDate(stamp.date)}
+                    />
+                  </View>
                 ))}
+              </ScrollView>
+              {photos.length > 1 && (
+                <View style={styles.photoDots}>
+                  {photos.map((_, i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.dot,
+                        {
+                          width: i === currentPhotoIndex ? 14 : 5,
+                          backgroundColor: i === currentPhotoIndex
+                            ? COLORS.primary
+                            : COLORS.outlineVariant,
+                        },
+                      ]}
+                    />
+                  ))}
+                </View>
+              )}
+            </View>
+
+            {/* ── Compact seal — catalog label beneath the photograph ───────── */}
+            <View style={styles.sealWrapperCompact}>
+              <View style={[styles.sealOuter, styles.sealOuterCompact, { borderColor: stamp.color }]}>
+                <View
+                  style={[styles.sealInnerBorder, { borderColor: stamp.color }]}
+                  pointerEvents="none"
+                />
+                <Ionicons name={resolveStampIcon(stamp)} size={28} color={stamp.color} />
+                <Text
+                  style={[styles.sealTitle, styles.sealTitleCompact, { color: stamp.color }]}
+                  numberOfLines={2}
+                >
+                  {stamp.title.toUpperCase()}
+                </Text>
+                <View style={[styles.sealLine, styles.sealLineCompact, { backgroundColor: stamp.color }]} />
+                <Text style={[styles.sealDate, styles.sealDateCompact, { color: stamp.color }]}>
+                  {formatArrivalDate(stamp.date)}
+                </Text>
+                <Text style={[styles.sealWatermark, { color: stamp.color }]}>
+                  {stamp.id.slice(0, 8).toUpperCase()}
+                </Text>
               </View>
-            )}
+            </View>
+          </>
+        ) : (
+          /* ── Full seal — hero when no photograph exists ───────────────── */
+          <View style={styles.sealWrapper}>
+            <View style={[styles.sealOuter, { borderColor: stamp.color }]}>
+              <View
+                style={[styles.sealInnerBorder, { borderColor: stamp.color }]}
+                pointerEvents="none"
+              />
+              <Ionicons name={resolveStampIcon(stamp)} size={44} color={stamp.color} />
+              <Text style={[styles.sealTitle, { color: stamp.color }]} numberOfLines={2}>
+                {stamp.title.toUpperCase()}
+              </Text>
+              <View style={[styles.sealLine, { backgroundColor: stamp.color }]} />
+              <Text style={[styles.sealDate, { color: stamp.color }]}>
+                {formatArrivalDate(stamp.date)}
+              </Text>
+              <Text style={[styles.sealWatermark, { color: stamp.color }]}>
+                {stamp.id.slice(0, 8).toUpperCase()}
+              </Text>
+            </View>
           </View>
         )}
 
-        {/* ── Seção de metadados — estilo ledger/livro contábil ────────────── */}
+        {/* ── Archival metadata ledger ────────────────────────────────────── */}
         <View style={styles.metadataSection}>
-          {/* VOLUME — categoria com badge burgundy */}
+
+          {/* Archive reference — catalog identifier at the head of the ledger */}
+          <View style={styles.metaArchiveRow}>
+            <Text style={styles.metaArchiveLabel}>ARCHIVE REF.</Text>
+            <Text style={styles.metaArchiveValue}>{archiveRef}</Text>
+          </View>
+
+          {/* Classification */}
           <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>VOLUME</Text>
-            <View style={[styles.categoryBadge, { backgroundColor: stamp.color }]}>
-              <Ionicons name={CATEGORY_ICONS[stamp.category]} size={11} color={COLORS.white} />
-              <Text style={styles.categoryBadgeText}>
-                {CATEGORY_LABELS[stamp.category].toUpperCase()}
+            <Text style={styles.metaLabel}>CLASSIFICATION</Text>
+            <View style={styles.metaCategoryInline}>
+              <Ionicons
+                name={CATEGORY_ICONS[stamp.category]}
+                size={9}
+                color={COLORS.onSurfaceVariant}
+                style={{ opacity: 0.6 }}
+              />
+              <Text style={styles.metaValueInline} numberOfLines={1}>
+                {CATEGORY_LABELS_EN[stamp.category].toUpperCase()}
               </Text>
             </View>
           </View>
 
-          {/* DATE */}
+          {/* Date recorded */}
           <View style={styles.metaRow}>
-            <Text style={styles.metaLabel}>DATE</Text>
+            <Text style={styles.metaLabel}>RECORDED</Text>
             <Text style={styles.metaValue}>{formatDateLong(stamp.date)}</Text>
           </View>
 
-          {/* LOCATION */}
+          {/* Location */}
           <View style={styles.metaRow}>
             <Text style={styles.metaLabel}>LOCATION</Text>
             <Text style={styles.metaValue}>{stamp.place}</Text>
           </View>
 
-          {/* COUNTRY ou REF */}
-          <View style={[styles.metaRow, styles.metaRowLast]}>
-            {stamp.country ? (
-              <>
-                <Text style={styles.metaLabel}>COUNTRY</Text>
-                <Text style={styles.metaValue}>{stamp.country}</Text>
-              </>
-            ) : (
-              <>
-                <Text style={styles.metaLabel}>REF</Text>
-                <Text style={styles.metaValue}>
-                  #{stamp.id.slice(0, 8).toUpperCase()}
-                </Text>
-              </>
-            )}
-          </View>
+          {/* Territory or archive status */}
+          {stamp.country ? (
+            <View style={[styles.metaRow, styles.metaRowLast]}>
+              <Text style={styles.metaLabel}>TERRITORY</Text>
+              <Text style={styles.metaValue}>{stamp.country}</Text>
+            </View>
+          ) : (
+            <View style={[styles.metaRow, styles.metaRowLast]}>
+              <Text style={styles.metaLabel}>ARCHIVE STATUS</Text>
+              <Text style={styles.metaValue}>PRESERVED</Text>
+            </View>
+          )}
+
         </View>
 
-        {/* ── Nota (se existir) ───────────────────────────────────────────── */}
+        {/* ── Field notes — text printed on the document, no container ───── */}
         {stamp.note ? (
-          <View style={[styles.noteCard, { borderLeftColor: stamp.color }]}>
-            <Text style={styles.noteTitle}>Notes</Text>
+          <View style={styles.noteSection}>
+            <Text style={styles.noteSectionLabel}>FIELD NOTES</Text>
             <Text style={styles.noteText}>{stamp.note}</Text>
           </View>
         ) : null}
 
-        {/* ── Botões de ação ─────────────────────────────────────────────── */}
-        <View style={styles.actionsSection}>
-          {/* Link de remoção — labelCaps secondary, confirmação antes de deletar */}
-          <TouchableOpacity style={styles.deleteLink} onPress={handleDelete} activeOpacity={0.7}>
-            <Text style={styles.deleteLinkText}>Deletar</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Footer decorativo (não interativo) ──────────────────────────── */}
+        {/* ── Document footer ──────────────────────────────────────────────── */}
         <View style={styles.footer} pointerEvents="none">
           <View style={styles.footerLine} />
-          <Text style={styles.footerText}>
-            ARCHIVAL QUALITY PAPER • NO. 883-21
+          <Text style={styles.footerText}>MEMORY STAMP ARCHIVE</Text>
+          <Text style={styles.footerTextSub}>
+            {`ARCHIVAL QUALITY PAPER · RECORD No. ${stamp.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`}
           </Text>
         </View>
+
+        {/* ── Archive removal — intentionally buried, reads as a footnote ─── */}
+        <TouchableOpacity style={styles.deleteLink} onPress={handleDelete} activeOpacity={0.5}>
+          <Text style={styles.deleteLinkText}>remove from archive</Text>
+        </TouchableOpacity>
+
       </ScrollView>
 
-      {/* ── Header sticky — sobreposto ao scroll ────────────────────────── */}
+      {/* ── Sticky document header ─────────────────────────────────────────── */}
       <View
         style={[styles.header, { paddingTop: insets.top }]}
         pointerEvents="box-none"
       >
-        {/* Botão voltar */}
         <TouchableOpacity
           style={styles.headerLeft}
           onPress={() => navigation.goBack()}
           activeOpacity={0.7}
         >
-          <Ionicons name="arrow-back" size={20} color={COLORS.primary} />
+          <Ionicons name="arrow-back" size={18} color={COLORS.primary} />
           <Text style={styles.backText}>BACK</Text>
         </TouchableOpacity>
 
-        {/* Título central */}
         <View style={styles.headerCenter} pointerEvents="none">
-          <Text style={styles.headerTitle}>Memory Details</Text>
+          <Text style={styles.headerTitle}>ARCHIVE RECORD</Text>
         </View>
 
-        {/* Editar */}
+        {/* Amend — archival correction annotation, never a primary action */}
         <TouchableOpacity
           style={styles.headerRight}
           onPress={() => navigation.navigate('EditStamp', { stamp })}
           activeOpacity={0.7}
         >
-          <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+          <Ionicons name="pencil-outline" size={12} color={COLORS.onSurfaceVariant} style={{ opacity: 0.65 }} />
+          <Text style={styles.amendText}>amend</Text>
         </TouchableOpacity>
       </View>
 
@@ -263,7 +311,7 @@ export function StampDetailScreen({ route, navigation }: Props) {
   );
 }
 
-// ── Estilos ───────────────────────────────────────────────────────────────────
+// ── Styles ─────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: {
@@ -272,21 +320,31 @@ const styles = StyleSheet.create({
   },
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 48,
+    paddingBottom: 40,
     alignItems: 'center',
   },
+  // Shared paper texture — same density as CreateStampScreen / EditStampScreen
+  bgDot: {
+    position: 'absolute',
+    width: 1.5,
+    height: 1.5,
+    borderRadius: 1,
+    backgroundColor: COLORS.onSurface,
+    opacity: 0.06,
+  },
 
-  // ── Header sticky ──
+  // ── Document header ───────────────────────────────────────────────────────────
   header: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(254,249,237,0.88)',
+    top: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(254,249,237,0.94)',
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.pageMargin,
     paddingBottom: 12,
+    // Thin ruled bottom edge — the top rule of a document page
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(29,28,21,0.08)',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -304,41 +362,64 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
+  // Document type classification — not a screen name
   headerTitle: {
-    fontFamily: FONTS.headlineSm,
-    fontSize: 16,
-    color: COLORS.primary,
+    fontFamily: FONTS.labelStamp,
+    fontSize: 11,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 2.5,
+    opacity: 0.65,
   },
   headerRight: {
     minWidth: 72,
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 3,
+  },
+  // Lowercase, typewriter weight — marginal correction annotation feel
+  amendText: {
+    fontFamily: FONTS.labelStampRegular,
+    fontSize: 10,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 0.8,
+    opacity: 0.7,
   },
 
-  // ── O Selo ──
+  // ── Seal — full size when no photograph (it becomes the hero) ─────────────────
   sealWrapper: {
     alignSelf: 'center',
-    marginBottom: 32,
+    marginBottom: 20,
   },
-  // Carimbo principal: quadrado 220px, rotacionado -3deg
   sealOuter: {
-    width: 220,
-    height: 220,
+    width: 210,
+    height: 210,
     borderWidth: 2,
     borderRadius: 12,
     backgroundColor: COLORS.surfaceContainerLow,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 18,
+    padding: 14,
     transform: [{ rotate: '-3deg' }],
     ...SHADOW_PAPER,
   },
-  // Borda interna decorativa com inset de 8px
+
+  // ── Seal — compact (catalog label beneath a photograph) ───────────────────────
+  sealWrapperCompact: {
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sealOuterCompact: {
+    width: 148,
+    height: 148,
+    borderWidth: 1.5,
+    padding: 10,
+    transform: [{ rotate: '-2deg' }],
+  },
+
   sealInnerBorder: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    right: 8,
-    bottom: 8,
+    top: 8, left: 8, right: 8, bottom: 8,
     borderWidth: 1,
     borderRadius: 8,
     opacity: 0.3,
@@ -351,11 +432,21 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 19,
   },
+  sealTitleCompact: {
+    fontSize: 10,
+    letterSpacing: 1.5,
+    marginTop: 5,
+    lineHeight: 13,
+  },
   sealLine: {
-    width: 40,
+    width: 36,
     height: 1,
-    marginVertical: 8,
-    opacity: 0.7,
+    marginVertical: 7,
+    opacity: 0.6,
+  },
+  sealLineCompact: {
+    width: 22,
+    marginVertical: 5,
   },
   sealDate: {
     fontFamily: FONTS.labelStamp,
@@ -363,11 +454,32 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     opacity: 0.85,
   },
+  sealDateCompact: {
+    fontSize: 10,
+  },
+  // Ghost catalog code — printer's registration mark level opacity
+  sealWatermark: {
+    position: 'absolute',
+    bottom: 9,
+    right: 10,
+    fontFamily: FONTS.labelStamp,
+    fontSize: 7,
+    letterSpacing: 1,
+    opacity: 0.18,
+  },
 
-  // ── Fotos — molduras polaroid ──
+  // ── Photographic record ───────────────────────────────────────────────────────
   photoSection: {
     width: '100%',
-    marginBottom: 32,
+    marginBottom: 12,
+  },
+  photoSectionLabel: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: FONT_SIZES.labelXs,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1.5,
+    marginBottom: 8,
+    opacity: 0.6,
   },
   photoPage: {
     width: PHOTO_WIDTH,
@@ -377,111 +489,122 @@ const styles = StyleSheet.create({
   photoDots: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: 5,
-    paddingTop: 12,
+    alignItems: 'center',
+    gap: 4,
+    paddingTop: 6,
   },
   dot: {
-    width: 5,
-    height: 5,
-    borderRadius: 999,
-    opacity: 0.7,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.6,
   },
 
-  // ── Metadados estilo ledger ──
+  // ── Metadata ledger ───────────────────────────────────────────────────────────
+  // Top border anchors the ledger to the content above as one document
   metadataSection: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(29,28,21,0.12)',
+    paddingTop: 14,
+  },
+  // Archive reference — the catalog heading of the entire ledger block
+  metaArchiveRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingBottom: 10,
+    marginBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(29,28,21,0.12)',
+  },
+  metaArchiveLabel: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 8,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 2,
+    opacity: 0.5,
+  },
+  metaArchiveValue: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 12,
+    color: COLORS.onSurface,
+    letterSpacing: 1.5,
   },
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    paddingBottom: 6,
+    paddingBottom: 8,
     marginBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(29,28,21,0.14)',
+    // Very faint ledger line — just enough to separate without interrupting
+    borderBottomColor: 'rgba(29,28,21,0.07)',
   },
   metaRowLast: {
     marginBottom: 0,
   },
+  // Labels recede — they are index terms, not content
   metaLabel: {
     fontFamily: FONTS.labelCaps,
     fontSize: FONT_SIZES.labelXs,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
+    opacity: 0.55,
   },
+  // Values advance — they are the record content
   metaValue: {
     fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelStamp,
+    fontSize: 15,
     color: COLORS.onSurface,
-    maxWidth: '65%',
+    maxWidth: '60%',
     textAlign: 'right',
   },
-  categoryBadge: {
+  // Classification: no maxWidth, single line guaranteed
+  metaValueInline: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 15,
+    color: COLORS.onSurface,
+    textAlign: 'right',
+  },
+  metaCategoryInline: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderRadius: RADIUS.full,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  categoryBadgeText: {
-    fontFamily: FONTS.labelCaps,
-    fontSize: 10,
-    color: COLORS.white,
-    letterSpacing: 0.5,
   },
 
-  // ── Nota ──
-  noteCard: {
+  // ── Field notes — bare text on paper, no container ────────────────────────────
+  noteSection: {
     width: '100%',
-    backgroundColor: COLORS.surfaceContainer,
-    borderRadius: 8,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(117,119,126,0.25)',
-    borderLeftWidth: 4,
-    marginBottom: 28,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(29,28,21,0.12)',
+    paddingTop: 14,
+    marginBottom: 20,
   },
-  noteTitle: {
-    fontFamily: FONTS.headlineMd,
-    fontSize: FONT_SIZES.headlineSm,
-    color: COLORS.onSurface,
-    marginBottom: 12,
+  noteSectionLabel: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: FONT_SIZES.labelXs,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1.5,
+    marginBottom: 10,
+    opacity: 0.55,
   },
+  // Plain typewriter text — no card, no border, no background
   noteText: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.bodyMd,
+    fontSize: 15,
     color: COLORS.onSurface,
-    opacity: 0.9,
+    opacity: 0.82,
     lineHeight: 24,
   },
 
-  // ── Botões de ação ──
-  actionsSection: {
-    width: '100%',
-    gap: 12,
-    marginBottom: 36,
-  },
-  // Link de remoção
-  deleteLink: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  deleteLinkText: {
-    fontFamily: FONTS.labelCaps,
-    fontSize: FONT_SIZES.labelCaps,
-    color: COLORS.secondary,
-    textDecorationLine: 'underline',
-    letterSpacing: 1,
-  },
-
-  // ── Footer decorativo (opacity 0.2) ──
+  // ── Document footer ───────────────────────────────────────────────────────────
   footer: {
     width: '100%',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     opacity: 0.2,
+    marginBottom: 12,
   },
   footerLine: {
     height: 1,
@@ -494,5 +617,25 @@ const styles = StyleSheet.create({
     color: COLORS.onSurface,
     letterSpacing: 2,
     textAlign: 'center',
+  },
+  footerTextSub: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 8,
+    color: COLORS.onSurface,
+    letterSpacing: 1.5,
+    textAlign: 'center',
+  },
+
+  // ── Archive removal — footnote-level visibility, never competes ───────────────
+  deleteLink: {
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  deleteLinkText: {
+    fontFamily: FONTS.labelStampRegular,
+    fontSize: 9,
+    color: COLORS.outline,
+    letterSpacing: 1,
+    opacity: 0.35,
   },
 });

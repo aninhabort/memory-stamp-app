@@ -43,7 +43,7 @@ for (let row = 0; row < 18; row++) {
  * Provides the layout container and delegates form logic to StampForm component.
  */
 export function CreateStampScreen({ navigation, route }: Props) {
-  const { addStamp } = useStamps();
+  const { addStamp, stamps } = useStamps();
   const insets = useSafeAreaInsets();
   const volumeId = route.params?.volumeId;
   const returnToVolumeId = route.params?.returnToVolumeId;
@@ -116,7 +116,11 @@ export function CreateStampScreen({ navigation, route }: Props) {
             <View style={styles.headerRight} />
           </View>
 
-          <StampForm onSubmit={handleSubmit} onDiscard={handleDiscard} />
+          <StampForm
+            onSubmit={handleSubmit}
+            onDiscard={handleDiscard}
+            entryNumber={stamps.length + 1}
+          />
 
           <View style={{ height: SPACING.stackLoose }} />
         </ScrollView>

@@ -16,6 +16,7 @@ import {
   SHADOW_PAPER,
 } from '../constants/theme';
 import {
+  formatArrivalDate,
   formatDateShort,
   getCardRotation,
   resolveCoverPhoto,
@@ -105,7 +106,7 @@ export function StampCard({ stamp, variant = 'grid', index = 0 }: StampCardProps
               width={photoSize}
               height={photoSize}
               rotation={rotation}
-              caption={formatDateShort(stamp.date)}
+              caption={formatArrivalDate(stamp.date)}
             />
             {extraPhotos > 0 && (
               <View style={styles.photoBadge}>

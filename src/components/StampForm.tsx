@@ -7,6 +7,7 @@ import {
   StyleSheet,
   Alert,
   Animated,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,18 +25,16 @@ import { PhotoSelector } from './PhotoSelector';
 import { CategoryPicker } from './CategoryPicker';
 import { ColorPicker, PRESET_COLORS } from './ColorPicker';
 
-const ICON_GAP = 10;
+const ICONS: React.ComponentProps<typeof Ionicons>['name'][] = [
+  'globe-outline',          'musical-notes-outline', 'wine-outline',          'happy-outline',
+  'home-outline',           'sunny-outline',         'people-outline',        'pizza-outline',
+  'cafe-outline',           'compass-outline',       'boat-outline',          'airplane-outline',
+  'film-outline',           'library-outline',       'color-palette-outline',
+];
 
 const COLOR_PALETTE = [
   '#4A90D9', '#9B59B6', '#E74C3C',
   '#27AE60', '#E67E22', '#1B2B4B',
-];
-
-const ICONS: React.ComponentProps<typeof Ionicons>['name'][] = [
-  'globe-outline',         'musical-notes-outline', 'wine-outline',          'happy-outline',
-  'home-outline',          'sunny-outline',         'people-outline',        'pizza-outline',
-  'cafe-outline',          'compass-outline',       'boat-outline',          'airplane-outline',
-  'film-outline',          'library-outline',       'color-palette-outline',
 ];
 
 export interface StampFormData {
@@ -53,41 +52,35 @@ export interface StampFormData {
 interface StampFormProps {
   onSubmit: (data: StampFormData) => Promise<void>;
   onDiscard: () => void;
-  /** Pre-fills the form for editing an existing stamp. */
   initialData?: StampFormData;
-  /** Hint text above the stamp button. */
   pressHint?: string;
-  /** Two-line label on the stamp button. */
   actionLabel?: [string, string];
+  entryNumber?: number;
 }
 
-/**
- * Form component for creating or editing a stamp entry.
- * Handles all form state, photo selection, and user input.
- */
 export function StampForm({
   onSubmit,
   onDiscard,
   initialData,
   pressHint = 'Press firmly to certify entry',
   actionLabel = ['STAMP', 'PAGE'],
+  entryNumber,
 }: StampFormProps) {
-  // Computed once per mount so they always reflect the day the form opens.
   const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
   const decoDate = useMemo(() => formatDecoDate(new Date()), []);
 
   const initialColorIsCustom = !!initialData && !PRESET_COLORS.includes(initialData.color);
   const initialIconIsCustom  = !!initialData && !ICONS.includes(initialData.icon);
 
-  const [title,    setTitle]   = useState(initialData?.title ?? '');
-  const [place,    setPlace]   = useState(initialData?.place ?? '');
-  const [country,  setCountry] = useState(initialData?.country ?? '');
-  const [date,     setDate]    = useState(initialData?.date ?? todayISO);
-  const [note,     setNote]    = useState(initialData?.note ?? '');
+  const [title,    setTitle]   = useState(initialData?.title    ?? '');
+  const [place,    setPlace]   = useState(initialData?.place    ?? '');
+  const [country,  setCountry] = useState(initialData?.country  ?? '');
+  const [date,     setDate]    = useState(initialData?.date     ?? todayISO);
+  const [note,     setNote]    = useState(initialData?.note     ?? '');
   const [photos,   setPhotos]  = useState<string[]>(initialData?.photos ?? []);
   const [photoScrollIndex, setPhotoScrollIndex] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<Stamp['category']>(initialData?.category ?? 'viagem');
-  const [selectedColor,    setSelectedColor]    = useState(initialData?.color ?? COLOR_PALETTE[0]);
+  const [selectedColor,    setSelectedColor]    = useState(initialData?.color  ?? COLOR_PALETTE[0]);
   const [customColor,      setCustomColor]      = useState(initialColorIsCustom ? initialData!.color : '');
   const [isCustomColorMode, setIsCustomColorMode] = useState(initialColorIsCustom);
   const [selectedIcon,     setSelectedIcon]     = useState(initialIconIsCustom ? ICONS[0] : (initialData?.icon ?? ICONS[0]));
@@ -96,6 +89,9 @@ export function StampForm({
   const [isSaving, setIsSaving] = useState(false);
 
   const stampScaleAnim = useRef(new Animated.Value(1)).current;
+  const sealOpacity    = useRef(new Animated.Value(0)).current;
+  const sealScale      = useRef(new Animated.Value(0.85)).current;
+  const [showSeal, setShowSeal] = useState(false);
 
   const resetForm = () => {
     setTitle(''); setPlace(''); setCountry('');
@@ -103,11 +99,9 @@ export function StampForm({
     setPhotos([]); setPhotoScrollIndex(0);
     setSelectedCategory('viagem');
     setSelectedColor(COLOR_PALETTE[0]);
-    setCustomColor('');
-    setIsCustomColorMode(false);
+    setCustomColor(''); setIsCustomColorMode(false);
     setSelectedIcon(ICONS[0]);
-    setCustomEmoji('');
-    setIsCustomEmojiMode(false);
+    setCustomEmoji(''); setIsCustomEmojiMode(false);
   };
 
   const pickPhoto = async (source: 'camera' | 'gallery') => {
@@ -136,8 +130,8 @@ export function StampForm({
   const handlePhotoPress = () => {
     if (photos.length >= 6) return;
     Alert.alert('Add photo', 'Choose source:', [
-      { text: 'Camera',   onPress: () => pickPhoto('camera') },
-      { text: 'Gallery',  onPress: () => pickPhoto('gallery') },
+      { text: 'Camera',  onPress: () => pickPhoto('camera')  },
+      { text: 'Gallery', onPress: () => pickPhoto('gallery') },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };
@@ -152,10 +146,16 @@ export function StampForm({
     setPhotoScrollIndex(Math.max(0, Math.min(idx, photos.length - 1)));
   };
 
+  // Press-in: stamp presses down
   const handleStampPressIn = () =>
-    Animated.timing(stampScaleAnim, { toValue: 0.95, duration: 80, useNativeDriver: true }).start();
+    Animated.timing(stampScaleAnim, { toValue: 0.93, duration: 90, useNativeDriver: true }).start();
+
+  // Press-out: stamp rebounds — overshoots then settles (tactile spring-back)
   const handleStampPressOut = () =>
-    Animated.timing(stampScaleAnim, { toValue: 1.0,  duration: 80, useNativeDriver: true }).start();
+    Animated.sequence([
+      Animated.timing(stampScaleAnim, { toValue: 1.06, duration: 80,  useNativeDriver: true }),
+      Animated.spring(stampScaleAnim,  { toValue: 1.0,  friction: 6, tension: 300, useNativeDriver: true }),
+    ]).start();
 
   const handleSave = async () => {
     if (!title.trim()) { Alert.alert('Required field', 'Please enter a title for the entry.'); return; }
@@ -163,9 +163,25 @@ export function StampForm({
     if (isSaving) return;
     setIsSaving(true);
     try {
-      // Haptics can fail/reject on simulators without a haptic engine — never
-      // let that block the actual save + navigation.
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+
+      // New entries: play the certified seal animation before persisting
+      if (!initialData) {
+        sealOpacity.setValue(0);
+        sealScale.setValue(0.85);
+        setShowSeal(true);
+        await new Promise<void>(resolve => {
+          Animated.sequence([
+            Animated.parallel([
+              Animated.timing(sealOpacity, { toValue: 0.92, duration: 150, useNativeDriver: true }),
+              Animated.spring(sealScale, { toValue: 1, friction: 7, tension: 180, useNativeDriver: true }),
+            ]),
+            Animated.delay(300),
+            Animated.timing(sealOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
+          ]).start(() => { setShowSeal(false); resolve(); });
+        });
+      }
+
       await onSubmit({
         title:    title.trim(),
         place:    place.trim(),
@@ -196,11 +212,22 @@ export function StampForm({
 
   return (
     <>
+      {/* ── Document card ───────────────────────────────────────────────────── */}
       <View style={styles.passportCard}>
         <View style={styles.cardInnerBorder} pointerEvents="none" />
 
-        <Text style={styles.decoDate}>{decoDate}</Text>
+        {/* Document header — date left, entry reference right */}
+        <View style={styles.docHeaderRow}>
+          <Text style={styles.decoDate}>{decoDate}</Text>
+          <Text style={styles.entryRef}>
+            {entryNumber !== undefined
+              ? `ENTRY #${String(entryNumber).padStart(4, '0')}`
+              : initialData ? 'REVISION' : 'ENTRY —'}
+          </Text>
+        </View>
 
+        {/* ── Photo section ─────────────────────────────────────────────────── */}
+        <Text style={styles.sectionLabel}>PHOTOGRAPHIC RECORD</Text>
         <PhotoSelector
           photos={photos}
           onAddPhoto={handlePhotoPress}
@@ -211,12 +238,13 @@ export function StampForm({
 
         <View style={styles.cardDivider} />
 
+        {/* ── Core fields ───────────────────────────────────────────────────── */}
         <View style={styles.fieldGroup}>
           <Text style={styles.fieldLabel}>ENTRY TITLE</Text>
           <View style={styles.fieldRow}>
             <TextInput
               style={[styles.fieldInputLarge, styles.flex]}
-              placeholder="Name of this memory..."
+              placeholder="Give this memory a name"
               placeholderTextColor={COLORS.outlineVariant}
               value={title}
               onChangeText={setTitle}
@@ -229,12 +257,12 @@ export function StampForm({
           <View style={styles.fieldRow}>
             <TextInput
               style={[styles.fieldInputLarge, styles.flex]}
-              placeholder="City, place..."
+              placeholder="City, site, or landmark"
               placeholderTextColor={COLORS.outlineVariant}
               value={place}
               onChangeText={setPlace}
             />
-            <Ionicons name="location-outline" size={16} color={COLORS.outline} />
+            <Ionicons name="location-outline" size={14} color={COLORS.outline} />
           </View>
         </View>
 
@@ -243,12 +271,12 @@ export function StampForm({
           <View style={styles.fieldRow}>
             <TextInput
               style={[styles.fieldInputMono, styles.flex]}
-              placeholder="Country..."
+              placeholder="Country or territory"
               placeholderTextColor={COLORS.outlineVariant}
               value={country}
               onChangeText={setCountry}
             />
-            <Ionicons name="globe-outline" size={16} color={COLORS.outline} />
+            <Ionicons name="globe-outline" size={14} color={COLORS.outline} />
           </View>
         </View>
 
@@ -264,16 +292,16 @@ export function StampForm({
               keyboardType="numbers-and-punctuation"
               maxLength={10}
             />
-            <Ionicons name="calendar-outline" size={16} color={COLORS.outline} />
+            <Ionicons name="calendar-outline" size={14} color={COLORS.outline} />
           </View>
         </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.fieldLabel}>FIELD NOTES</Text>
+        <View style={[styles.fieldGroup, { marginBottom: 0 }]}>
+          <Text style={styles.fieldLabel}>NOTES</Text>
           <View style={[styles.fieldRow, { alignItems: 'flex-start' }]}>
             <TextInput
               style={[styles.fieldInputMono, styles.flex, styles.fieldInputNote]}
-              placeholder="Describe the memory of this entry..."
+              placeholder="Write what should not be forgotten"
               placeholderTextColor={COLORS.outlineVariant}
               value={note}
               onChangeText={setNote}
@@ -283,15 +311,16 @@ export function StampForm({
             />
             <Ionicons
               name="document-text-outline"
-              size={16}
+              size={14}
               color={COLORS.outline}
-              style={{ marginTop: 14 }}
+              style={styles.noteIcon}
             />
           </View>
         </View>
 
         <View style={styles.cardDivider} />
 
+        {/* ── Classification ────────────────────────────────────────────────── */}
         <CategoryPicker
           selectedCategory={selectedCategory}
           onSelectCategory={setSelectedCategory}
@@ -299,6 +328,7 @@ export function StampForm({
 
         <View style={styles.cardDivider} />
 
+        {/* ── Color tag ─────────────────────────────────────────────────────── */}
         <ColorPicker
           selectedColor={selectedColor}
           onSelectColor={setSelectedColor}
@@ -310,11 +340,14 @@ export function StampForm({
 
         <View style={styles.cardDivider} />
 
+        {/* ── Icon ──────────────────────────────────────────────────────────── */}
         <Text style={styles.sectionLabel}>ICON</Text>
         <View style={styles.iconGrid}>
           {[...ICONS, 'custom-emoji' as const].map((icon) => {
             const isCustom = icon === 'custom-emoji';
-            const active = isCustom ? isCustomEmojiMode : (!isCustomEmojiMode && selectedIcon === icon);
+            const active   = isCustom
+              ? isCustomEmojiMode
+              : (!isCustomEmojiMode && selectedIcon === icon);
 
             return (
               <TouchableOpacity
@@ -336,14 +369,14 @@ export function StampForm({
                   ) : (
                     <Ionicons
                       name="add-circle-outline"
-                      size={22}
+                      size={20}
                       color={active ? COLORS.secondary : COLORS.onSurfaceVariant}
                     />
                   )
                 ) : (
                   <Ionicons
                     name={icon as React.ComponentProps<typeof Ionicons>['name']}
-                    size={22}
+                    size={20}
                     color={active ? COLORS.secondary : COLORS.onSurfaceVariant}
                   />
                 )}
@@ -365,10 +398,21 @@ export function StampForm({
             />
           </View>
         )}
-
       </View>
 
+      {/* ── Certification line ───────────────────────────────────────────────── */}
+      <View style={styles.certificationRow}>
+        <View style={styles.certLine} />
+        <View style={styles.certCenter}>
+          <Text style={styles.certLabel}>CERTIFY ENTRY</Text>
+          <Text style={styles.certSub}>DEPT. OF PERSONAL ARCHIVES</Text>
+        </View>
+        <View style={styles.certLine} />
+      </View>
+
+      {/* ── Stamp action ─────────────────────────────────────────────────────── */}
       <View style={styles.actionArea}>
+
         <Text style={styles.pressHint}>{pressHint}</Text>
 
         <TouchableOpacity
@@ -385,9 +429,11 @@ export function StampForm({
               isSaving && styles.stampBtnSaving,
             ]}
           >
+            {/* Outer certification ring */}
+            <View style={styles.stampInnerRing} pointerEvents="none" />
             <Ionicons
               name={isSaving ? 'checkmark-circle' : 'albums'}
-              size={40}
+              size={36}
               color={COLORS.white}
             />
             <Text style={styles.stampBtnLabel}>{actionLabel[0]}</Text>
@@ -395,22 +441,42 @@ export function StampForm({
           </Animated.View>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={handleDiscard} activeOpacity={0.7}>
+        <TouchableOpacity onPress={handleDiscard} activeOpacity={0.7} style={styles.discardBtn}>
           <Text style={styles.discardLink}>Discard Journal Entry</Text>
         </TouchableOpacity>
+
       </View>
+
+      {/* ── Certified seal overlay ─────────────────────────────────────────────── */}
+      <Modal visible={showSeal} transparent statusBarTranslucent animationType="none">
+        <Animated.View style={[styles.sealOverlay, { opacity: sealOpacity }]}>
+          <Animated.View
+            style={[styles.sealStamp, { transform: [{ rotate: '-9deg' }, { scale: sealScale }] }]}
+          >
+            <View style={styles.sealInner} pointerEvents="none" />
+            <Ionicons name="checkmark" size={22} color={COLORS.secondary} style={{ marginBottom: 4 }} />
+            <Text style={styles.sealTitle}>ARCHIVED</Text>
+            <Text style={styles.sealSub}>MEMORY RECORDED</Text>
+            <Text style={styles.sealDept}>DEPT. OF PERSONAL ARCHIVES</Text>
+          </Animated.View>
+        </Animated.View>
+      </Modal>
     </>
   );
 }
 
+// ── Styles ─────────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   flex: { flex: 1 },
 
-  // Passport card
+  // ── Document card ────────────────────────────────────────────────────────────
   passportCard: {
     backgroundColor: COLORS.surfaceContainerLow,
-    borderRadius: 8, padding: 32,
-    borderWidth: 1, borderColor: 'rgba(197,198,206,0.3)',
+    borderRadius: 8,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(197,198,206,0.3)',
     zIndex: 1,
     ...SHADOW_PAPER,
   },
@@ -420,81 +486,116 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderRadius: 4,
     borderColor: 'rgba(197,198,206,0.3)',
   },
+  // Document header row: decoDate on left, entry ref on right
+  docHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 14,
+  },
   decoDate: {
     fontFamily: FONTS.labelStamp,
     fontSize: FONT_SIZES.labelXs,
     color: COLORS.onSurfaceVariant,
-    opacity: 0.5, textAlign: 'right',
-    letterSpacing: 1, marginBottom: 12,
+    opacity: 0.5,
+    letterSpacing: 1,
+  },
+  entryRef: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 9,
+    color: COLORS.onSurfaceVariant,
+    opacity: 0.55,
+    letterSpacing: 1,
   },
   cardDivider: {
     height: 1,
     backgroundColor: COLORS.outlineVariant,
     opacity: 0.4,
-    marginVertical: 20,
+    marginVertical: 18,
   },
   sectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9, color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5, marginBottom: 12,
+    fontSize: 9,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1.5,
+    marginBottom: 12,
   },
 
-  // Form fields (ledger-style with bottom border only)
-  fieldGroup: { marginBottom: 20 },
+  // ── Form fields (ledger-line style) ──────────────────────────────────────────
+  // Tighter vertical rhythm — 16 between groups, 6 label-to-field gap
+  fieldGroup: {
+    marginBottom: 16,
+  },
   fieldLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9, color: COLORS.outline,
-    letterSpacing: 1.5, marginBottom: 4,
+    fontSize: 9,
+    color: COLORS.outline,
+    letterSpacing: 1.5,
+    marginBottom: 6,
   },
   fieldRow: {
-    flexDirection: 'row', alignItems: 'center',
-    borderBottomWidth: 1.5,
-    borderBottomColor: 'rgba(29,28,21,0.35)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(29,28,21,0.25)',
   },
   fieldInputLarge: {
     fontFamily: FONTS.headlineSm,
     fontSize: FONT_SIZES.bodyLg,
     color: COLORS.onSurface,
-    paddingVertical: 10, paddingRight: 4,
+    paddingVertical: 9,
+    paddingRight: 4,
     backgroundColor: 'transparent',
   },
   fieldInputMono: {
     fontFamily: FONTS.labelStampRegular,
     fontSize: FONT_SIZES.labelStamp,
     color: COLORS.onSurface,
-    paddingVertical: 10, paddingRight: 4,
+    paddingVertical: 9,
+    paddingRight: 4,
     backgroundColor: 'transparent',
   },
   fieldInputNote: {
-    minHeight: 80, paddingTop: 10,
+    minHeight: 76,
+    paddingTop: 9,
+  },
+  // Icon pinned to the top of the notes field (not vertically centered)
+  noteIcon: {
+    marginTop: 12,
   },
 
-  // Icon grid
+  // ── Icon grid ─────────────────────────────────────────────────────────────────
+  // Cells reduced from 70×70 to 56×56 — lighter visual weight, same touch target
   iconGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-evenly',
-    gap: ICON_GAP,
+    rowGap: 8,
   },
   iconCell: {
-    width: 70, height: 70,
-    alignItems: 'center', justifyContent: 'center',
+    width: 56,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 6,
-    borderWidth: 1, borderColor: COLORS.outlineVariant,
+    // Lighter border for unselected cells — they recede, selected cell advances
+    borderWidth: 1,
+    borderColor: `${COLORS.outlineVariant}90`,
     backgroundColor: COLORS.surfaceContainerLow,
   },
   iconCellActive: {
-    backgroundColor: `${COLORS.secondary}22`,
-    borderColor: COLORS.secondary, borderWidth: 1.5,
+    backgroundColor: `${COLORS.secondary}1A`,
+    borderColor: COLORS.secondary,
+    borderWidth: 1.5,
   },
   customEmojiDisplay: {
-    fontSize: 22,
+    fontSize: 20,
   },
   emojiInputContainer: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.outlineVariant,
+    borderTopColor: `${COLORS.outlineVariant}80`,
   },
   emojiInput: {
     fontFamily: FONTS.labelStampRegular,
@@ -509,37 +610,148 @@ const styles = StyleSheet.create({
     borderColor: COLORS.outlineVariant,
   },
 
-  // Action area
+  // ── Certification divider ─────────────────────────────────────────────────────
+  certificationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 36,
+    marginBottom: 4,
+    paddingHorizontal: 4,
+  },
+  certLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: COLORS.outlineVariant,
+    opacity: 0.5,
+  },
+  certCenter: {
+    alignItems: 'center',
+    gap: 3,
+  },
+  certLabel: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 9,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 2,
+    opacity: 0.6,
+  },
+  certSub: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 7,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1.5,
+    opacity: 0.35,
+  },
+
+  // ── Stamp action area ─────────────────────────────────────────────────────────
   actionArea: {
-    alignItems: 'center', marginTop: 32, gap: 16,
+    alignItems: 'center',
+    gap: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   pressHint: {
-    fontFamily: FONTS.labelCaps,
-    fontSize: FONT_SIZES.labelCaps,
-    color: COLORS.outline, fontStyle: 'italic', letterSpacing: 1,
+    fontFamily: FONTS.labelStampRegular,
+    fontSize: 11,
+    color: COLORS.outline,
+    fontStyle: 'italic',
+    letterSpacing: 0.5,
   },
   stampBtn: {
-    width: 128, height: 128, borderRadius: 64,
+    width: 128,
+    height: 128,
+    borderRadius: 64,
     backgroundColor: COLORS.secondary,
-    borderWidth: 4, borderColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center', justifyContent: 'center', gap: 2,
+    // Outer ring: suggests a wax seal or official stamp border
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 1,
     shadowColor: COLORS.secondary,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5, shadowRadius: 20, elevation: 14,
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    elevation: 14,
   },
-  stampBtnSaving: { opacity: 0.75 },
+  // Inner certification ring — double-border feel of an official seal
+  stampInnerRing: {
+    position: 'absolute',
+    top: 8, left: 8, right: 8, bottom: 8,
+    borderRadius: 56,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  stampBtnSaving: {
+    opacity: 0.75,
+  },
   stampBtnLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 12, color: COLORS.white, letterSpacing: 2,
+    fontSize: 13,
+    color: COLORS.white,
+    letterSpacing: 2.5,
   },
   stampBtnSublabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 10, color: COLORS.white, opacity: 0.7, letterSpacing: 2,
+    fontSize: 10,
+    color: COLORS.white,
+    opacity: 0.65,
+    letterSpacing: 2,
+  },
+  discardBtn: {
+    paddingVertical: 4,
   },
   discardLink: {
     fontFamily: FONTS.labelCaps,
     fontSize: FONT_SIZES.labelCaps,
     color: COLORS.outline,
-    textDecorationLine: 'underline', letterSpacing: 0.5,
+    textDecorationLine: 'underline',
+    letterSpacing: 0.5,
+  },
+
+  // ── Certified seal overlay ────────────────────────────────────────────────────
+  sealOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(5,21,43,0.65)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sealStamp: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: COLORS.secondary,
+    paddingHorizontal: 40,
+    paddingVertical: 28,
+    alignItems: 'center',
+    gap: 4,
+  },
+  sealInner: {
+    position: 'absolute',
+    top: 6, left: 6, right: 6, bottom: 6,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: `${COLORS.secondary}50`,
+  },
+  sealTitle: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 24,
+    color: COLORS.secondary,
+    letterSpacing: 6,
+  },
+  sealSub: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 9,
+    color: COLORS.secondary,
+    letterSpacing: 3,
+    opacity: 0.8,
+  },
+  sealDept: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 7,
+    color: COLORS.secondary,
+    letterSpacing: 2,
+    opacity: 0.5,
+    marginTop: 2,
   },
 });

@@ -45,14 +45,10 @@ type PassportNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList>
 >;
 
-// Volume color aliases for UI elements
-const VOLUME_INK = COLORS.onPrimary; // '#d5e3ff'
-
-// Spacing between cards on the volume shelf, used for snap-to-page scrolling.
+const VOLUME_INK = COLORS.onPrimary;
 const SHELF_ITEM_GAP = 16;
 
 // ─── AddVolumeCard ─────────────────────────────────────────────────────────────
-// Placeholder card that occupies the space for the next volume to be created.
 
 function AddVolumeCard({ onPress }: { onPress: () => void }) {
   return (
@@ -69,7 +65,6 @@ function AddVolumeCard({ onPress }: { onPress: () => void }) {
   );
 }
 
-
 // ─── PassportScreen ────────────────────────────────────────────────────────────
 
 export function PassportScreen() {
@@ -82,7 +77,7 @@ export function PassportScreen() {
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const insets = useSafeAreaInsets();
-  
+
   // Track if we've already processed the autoOpen param to avoid infinite loops
   const autoOpenProcessedRef = useRef(false);
   // Keep volumes and isOpen in sync with the latest state to avoid stale
@@ -114,21 +109,17 @@ export function PassportScreen() {
         await loadStamps();
         await reloadUserName();
 
-        // Only process autoOpen once per navigation
         if (route.params?.autoOpen && !autoOpenProcessedRef.current) {
           autoOpenProcessedRef.current = true;
           navigation.setParams({ autoOpen: undefined });
 
-          // Use returnToVolumeId if provided, otherwise use the most recent volume
           let target: Volume | null = null;
           const returnToId = route.params?.returnToVolumeId;
 
           if (returnToId) {
-            // Find the volume with the specific ID using the latest volumes ref
             target = volumesRef.current.find(v => v.id === returnToId) ?? null;
           }
 
-          // Fall back to most recent if returnToId wasn't provided or not found
           if (!target) {
             target = volumesRef.current[volumesRef.current.length - 1] ?? null;
           }
@@ -141,7 +132,6 @@ export function PassportScreen() {
             Animated.timing(contentOpacity, { toValue: 1, duration: 240, useNativeDriver: true }).start();
           }
         } else {
-          // Reset flag when autoOpen is not present
           if (!route.params?.autoOpen) {
             autoOpenProcessedRef.current = false;
           }
@@ -149,7 +139,6 @@ export function PassportScreen() {
       })();
     }, [syncStampsFromCloud, syncVolumesFromCloud, loadStamps, reloadUserName, route.params?.autoOpen]),
   );
-
 
   // ── Open volume ───────────────────────────────────────────────────────────
   const handleVolumePress = (volume: Volume) => {
@@ -178,45 +167,39 @@ export function PassportScreen() {
   };
 
   const handleFabPress = () => {
-    // Pass volumeId if a volume is open, so the new stamp is filed there;
-    // otherwise the Create screen falls back to the 'default' volume.
-    navigation.navigate('Create', selectedVolume ? { volumeId: selectedVolume.id, returnToVolumeId: selectedVolume.id } : undefined);
+    navigation.navigate('Create', selectedVolume
+      ? { volumeId: selectedVolume.id, returnToVolumeId: selectedVolume.id }
+      : undefined);
   };
 
   const handleStampPress = (stamp: Stamp) => navigation.navigate('StampDetail', { stamp });
 
-  // ── Stamps for selected volume ────────────────────────────────────────────
   // The 'default' volume displays all stamps without volumeId (backwards compatible).
-  // New volumes only display stamps with matching volumeId.
   const volumeStamps = !selectedVolume || selectedVolume.id === 'default'
     ? stamps.filter(s => !s.volumeId || s.volumeId === 'default')
     : stamps.filter(s => s.volumeId === selectedVolume.id);
 
-  // ── Next volume label ────────────────────────────────────────────────────
   const nextVolumeLabel = `VOLUME ${toRoman(volumes.length + 1)}`;
 
-  // ── Create new volume ──────────────────────────────────────────────────────
   // Closes the modal immediately instead of waiting on addVolume — its cloud
-  // sync step can hang while offline, which would otherwise leave the modal
-  // stuck open even though the volume was already saved locally.
+  // sync step can hang while offline, which would otherwise leave the modal stuck.
   const handleCreateVolume = (name: string) => {
     setShowAddModal(false);
     addVolume(name);
   };
 
-  // ── Delete volume ────────────────────────────────────────────────────────
   const handleDeleteVolume = (volume: Volume) => {
     if (volumes.length <= 1) {
-      Alert.alert('Não é possível excluir', 'Você precisa manter pelo menos um passaporte.');
+      Alert.alert('Cannot Delete', 'At least one passport must remain in the collection.');
       return;
     }
     Alert.alert(
-      'Excluir passaporte',
-      `Tem certeza que deseja excluir "${volume.name}"? Todos os selos guardados nele serão apagados permanentemente.`,
+      'Delete Passport',
+      `Are you sure you want to delete "${volume.name}"? All memories inside will be permanently removed.`,
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Excluir',
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             await deleteVolume(volume.id);
@@ -237,29 +220,33 @@ export function PassportScreen() {
 
   const renderEmptyStamps = () => (
     <View style={styles.emptyState}>
-      <Ionicons name="book-outline" size={44} color={COLORS.outlineVariant} />
-      <Text style={styles.emptyStateText}>No stamps in this passport</Text>
-      <Text style={styles.emptyStateHint}>Tap the pencil to record your first memory.</Text>
+      <Ionicons name="document-outline" size={36} color={COLORS.outlineVariant} />
+      <Text style={styles.emptyStateText}>No entries in this volume</Text>
+      <Text style={styles.emptyStateHint}>Press 'NEW ENTRY' to record your first memory.</Text>
     </View>
   );
 
-  // Compact strip at the top of the list when volume is open
+  // Compact passport card at the top of the open stamps grid
   const renderCompactHeader = () => (
     <View style={styles.compactStrip}>
       <View style={styles.compactGlobe}>
-        <Ionicons name="globe-outline" size={24} color={VOLUME_INK} />
+        <Ionicons name="globe-outline" size={20} color={VOLUME_INK} />
       </View>
       <View style={styles.compactInfo}>
         <Text style={styles.compactLabel}>MEMORY PASSPORT</Text>
-        <View style={styles.compactNameRow}>
-          <Text style={styles.compactName}>{userName}</Text>
-        </View>
+        <Text style={styles.compactName}>{userName}</Text>
+        <Text style={styles.compactVolumeName} numberOfLines={1}>
+          {selectedVolume?.name ?? 'My Passport'}
+        </Text>
       </View>
-      <Text style={styles.compactCount}>{volumeStamps.length}</Text>
+      {/* Entry count structured as a document field — number + label below */}
+      <View style={styles.compactCountBlock}>
+        <Text style={styles.compactCountNum}>{volumeStamps.length}</Text>
+        <Text style={styles.compactCountLabel}>ENTRIES</Text>
+      </View>
     </View>
   );
 
-  // Shelf item: real volume or add card
   type ShelfItem = Volume | { id: '__add__' };
 
   const renderShelfItem = ({ item, index }: { item: ShelfItem; index: number }) => {
@@ -267,16 +254,11 @@ export function PassportScreen() {
       return <AddVolumeCard onPress={() => setShowAddModal(true)} />;
     }
     const vol = item as Volume;
-    // Stamps belonging to this volume
     const volStamps = vol.id === 'default'
       ? stamps.filter(s => !s.volumeId || s.volumeId === 'default')
       : stamps.filter(s => s.volumeId === vol.id);
 
-    // Show the year of the oldest stamp in the volume, falling back to the
-    // volume's own year if it has no stamps yet.
-    const earliestYear = volStamps
-      .map(s => s.date.slice(0, 4))
-      .sort()[0];
+    const earliestYear = volStamps.map(s => s.date.slice(0, 4)).sort()[0];
     const displayYear = earliestYear ? `EST. ${earliestYear}` : vol.year;
 
     return (
@@ -298,10 +280,10 @@ export function PassportScreen() {
     <View style={styles.screen}>
       {!isOpen ? (
 
-        /* ──────────── CLOSED STATE ──────────── */
+        /* ────────── CLOSED STATE ────────── */
         <View style={styles.closedBg}>
 
-          {/* Header THE ARCHIVES */}
+          {/* Document header */}
           <View style={[styles.archivesHeader, { paddingTop: insets.top + 16 }]}>
             <View style={styles.archivesTitleRow}>
               <View style={styles.archivesTitleCol}>
@@ -319,25 +301,25 @@ export function PassportScreen() {
               </TouchableOpacity>
             </View>
             <View style={styles.archivesDivider} />
+            {/* Archival metadata row — reads like a document property table */}
+            <View style={styles.archivesMetaRow}>
+              <Text style={styles.archivesMeta}>
+                {stamps.length} {stamps.length === 1 ? 'ENTRY' : 'ENTRIES'}
+              </Text>
+              <Text style={styles.archivesMeta}>
+                {volumes.length} {volumes.length === 1 ? 'VOLUME' : 'VOLUMES'}
+              </Text>
+            </View>
           </View>
 
-          {/* Volume shelf */}
+          {/* Volume shelf — flex: 1 so it fills remaining space and footer pins to bottom */}
           <Animated.View
             style={[
               styles.bookSection,
-              {
-                opacity: shelfOpacity,
-                transform: [{ scale: shelfScale }],
-              },
+              { opacity: shelfOpacity, transform: [{ scale: shelfScale }] },
             ]}
           >
-            <Text style={styles.stampCounter}>
-              {stamps.length} {stamps.length === 1 ? 'stamp collected' : 'stamps collected'}
-            </Text>
-
-            <Text style={styles.shelfHint}>
-              Tap a passport to open
-            </Text>
+            <Text style={styles.shelfHint}>Select a volume to open</Text>
 
             <FlatList
               horizontal
@@ -351,26 +333,37 @@ export function PassportScreen() {
               decelerationRate="fast"
               snapToAlignment="start"
             />
+
+            {/* Spacer pushes the footer to the bottom of the section */}
+            <View style={styles.shelfSpacer} />
+
+            {/* Archival footer — printed document language at the bottom of the page */}
+            <View style={styles.archiveFooter}>
+              <View style={styles.archiveFooterLine} />
+              <Text style={styles.archiveFooterText}>
+                {`MEMORY STAMP ARCHIVE · ${stamps.length} ${stamps.length === 1 ? 'MEMORY' : 'MEMORIES'} PRESERVED`}
+              </Text>
+            </View>
           </Animated.View>
         </View>
 
       ) : (
 
-        /* ──────────── OPEN STATE ──────────── */
+        /* ────────── OPEN STATE ────────── */
         <Animated.View style={[styles.openContainer, { opacity: contentOpacity }]}>
 
           {/* Fixed header */}
           <View style={[styles.openHeader, { paddingTop: insets.top + SPACING.stackTight }]}>
             <TouchableOpacity style={styles.closeBtn} onPress={handleClose} activeOpacity={0.7}>
-              <Ionicons name="chevron-back" size={20} color={COLORS.primary} />
-              <Text style={styles.closeBtnText}>Back</Text>
+              <Ionicons name="chevron-back" size={18} color={COLORS.primary} />
+              <Text style={styles.closeBtnText}>BACK</Text>
             </TouchableOpacity>
 
             <Text style={styles.openTitle} numberOfLines={1}>
               {selectedVolume?.name ?? 'My Passport'}
             </Text>
 
-            <Text style={styles.openCounter}>{volumeStamps.length} stamps</Text>
+            <Text style={styles.openCounter}>{volumeStamps.length} ENTRIES</Text>
           </View>
 
           {/* Stamps grid */}
@@ -386,15 +379,17 @@ export function PassportScreen() {
             showsVerticalScrollIndicator={false}
           />
 
-          {/* FAB — pencil icon, burgundy background */}
-          <TouchableOpacity style={styles.fab} onPress={handleFabPress} activeOpacity={0.8}>
-            <Ionicons name="pencil" size={24} color={COLORS.white} />
-          </TouchableOpacity>
+          {/* Archival action button — stamp-pill shape, not a circular FAB */}
+          <View style={styles.fabContainer} pointerEvents="box-none">
+            <TouchableOpacity style={styles.fab} onPress={handleFabPress} activeOpacity={0.8}>
+              <Ionicons name="create-outline" size={16} color={COLORS.white} />
+              <Text style={styles.fabLabel}>NEW ENTRY</Text>
+            </TouchableOpacity>
+          </View>
 
         </Animated.View>
       )}
 
-      {/* Modal for creating new volume */}
       <VolumeModal
         visible={showAddModal}
         nextLabel={nextVolumeLabel}
@@ -419,10 +414,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
 
-  // Header "THE ARCHIVES"
+  // Document header
   archivesHeader: {
     paddingHorizontal: SPACING.pageMargin,
-    paddingBottom: SPACING.elementGap,
+    paddingBottom: 12,
   },
   archivesTitleRow: {
     flexDirection: 'row',
@@ -435,18 +430,21 @@ const styles = StyleSheet.create({
   profileBtn: {
     padding: 4,
   },
+  // Avatar as embossed seal — thin border, initials in ink, warm paper bg
   avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: COLORS.primaryContainer,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: COLORS.outlineVariant,
+    backgroundColor: COLORS.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
-    fontFamily: FONTS.headlineSm,
-    fontSize: 18,
-    color: COLORS.onPrimaryContainer,
+    fontFamily: FONTS.labelStamp,
+    fontSize: 14,
+    color: COLORS.primary,
     letterSpacing: 1,
   },
   archivesLabel: {
@@ -466,10 +464,23 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: COLORS.outlineVariant,
   },
+  // Two-column property row below the header divider — like a document field table
+  archivesMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+  },
+  archivesMeta: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 9,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1.5,
+    opacity: 0.55,
+  },
 
   // Volume shelf
   bookSection: {
-    flex: 0.8,
+    flex: 1,
     alignItems: 'center',
   },
   shelfContent: {
@@ -477,19 +488,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Shelf instruction — minimal, archival tone
   shelfHint: {
-    fontFamily: FONTS.bodyMd,
-    fontSize: FONT_SIZES.labelCaps,
+    fontFamily: FONTS.labelStampRegular,
+    fontSize: FONT_SIZES.labelXs,
     color: COLORS.onSurfaceVariant,
     textAlign: 'center',
-    opacity: 0.7,
-  },
-  stampCounter: {
-    fontFamily: FONTS.bodyMd,
-    fontSize: FONT_SIZES.labelCaps,
-    color: COLORS.onSurfaceVariant,
-    textAlign: 'center',
+    opacity: 0.45,
     marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  // Grows to fill remaining space so archiveFooter pins to the bottom
+  shelfSpacer: {
+    flex: 1,
+  },
+  // Archival footer strip — reinforces the document feeling of the page
+  archiveFooter: {
+    alignSelf: 'stretch',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  archiveFooterLine: {
+    height: 1,
+    width: '80%',
+    backgroundColor: COLORS.onSurface,
+    opacity: 0.07,
+  },
+  archiveFooterText: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 9,
+    color: COLORS.onSurfaceVariant,
+    letterSpacing: 1.5,
+    opacity: 0.35,
+    textAlign: 'center',
   },
 
   // Wrapper for card (includes badge below the book)
@@ -544,36 +577,40 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.pageMargin,
     paddingBottom: SPACING.stackTight,
     backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(29,28,21,0.08)',
   },
   closeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 2,
-    minWidth: 80,
+    minWidth: 72,
   },
   closeBtnText: {
-    fontFamily: FONTS.headlineSm,
-    fontSize: 15,
+    fontFamily: FONTS.labelCaps,
+    fontSize: FONT_SIZES.labelCaps,
     color: COLORS.primary,
+    letterSpacing: 1.5,
   },
   openTitle: {
     flex: 1,
-    fontFamily: FONTS.headlineMd,
-    fontSize: 18,
+    fontFamily: FONTS.headlineSm,
+    fontSize: 16,
     color: COLORS.primary,
     textAlign: 'center',
   },
   openCounter: {
-    fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelCaps,
-    color: COLORS.secondary,
-    minWidth: 80,
+    fontFamily: FONTS.labelStamp,
+    fontSize: FONT_SIZES.labelXs,
+    color: COLORS.onSurfaceVariant,
+    opacity: 0.65,
+    minWidth: 72,
     textAlign: 'right',
   },
 
-  // Compact strip — ListHeaderComponent for stamps grid
+  // Compact passport card — ListHeaderComponent for stamps grid
   compactStrip: {
-    height: 120,
+    height: 108,
     backgroundColor: COLORS.primaryContainer,
     borderRadius: RADIUS.lg,
     marginBottom: 16,
@@ -584,39 +621,57 @@ const styles = StyleSheet.create({
     ...SHADOW_PAPER,
   },
   compactGlobe: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: 'rgba(213,227,255,0.25)',
+    borderColor: 'rgba(213,227,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   compactInfo: {
     flex: 1,
+    gap: 2,
   },
   compactLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 8,
     color: COLORS.onPrimaryContainer,
     letterSpacing: 2,
-    marginBottom: 6,
-  },
-  compactNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+    opacity: 0.7,
+    marginBottom: 2,
   },
   compactName: {
     fontFamily: FONTS.headlineSm,
-    fontSize: 16,
+    fontSize: 15,
     color: VOLUME_INK,
   },
-  compactCount: {
+  // Volume name — secondary context below the traveller's name
+  compactVolumeName: {
+    fontFamily: FONTS.labelStampRegular,
+    fontSize: 11,
+    color: VOLUME_INK,
+    opacity: 0.5,
+    letterSpacing: 0.5,
+  },
+  // Entry count as a structured document field: number + label stacked
+  compactCountBlock: {
+    alignItems: 'center',
+    minWidth: 48,
+  },
+  compactCountNum: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 28,
+    fontSize: 22,
     color: COLORS.secondaryContainer,
-    opacity: 0.6,
+    opacity: 0.75,
+    lineHeight: 26,
+  },
+  compactCountLabel: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 7,
+    color: COLORS.onPrimaryContainer,
+    letterSpacing: 2,
+    opacity: 0.5,
   },
 
   // Empty state (volume with no stamps)
@@ -633,10 +688,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   emptyStateHint: {
-    fontFamily: FONTS.bodyMd,
-    fontSize: FONT_SIZES.labelCaps,
+    fontFamily: FONTS.labelStampRegular,
+    fontSize: FONT_SIZES.labelXs,
     color: COLORS.outlineVariant,
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
 
   // Stamps grid
@@ -645,23 +701,38 @@ const styles = StyleSheet.create({
     paddingBottom: 96,
   },
   row: {
-    gap: 20,
-    marginBottom: 20,
+    gap: 16,
+    marginBottom: 16,
     justifyContent: 'center',
   },
 
-  // FAB — pencil burgundy
-  fab: {
+  // Archival action button — stamp-pill shape replaces the circular FAB
+  fabContainer: {
     position: 'absolute',
     bottom: 32,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.secondary,
+    left: 0,
+    right: 0,
     alignItems: 'center',
-    justifyContent: 'center',
     zIndex: 999,
-    ...SHADOW_PAPER,
+  },
+  fab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 6,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    shadowColor: COLORS.secondary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  fabLabel: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 12,
+    color: COLORS.white,
+    letterSpacing: 2.5,
   },
 });

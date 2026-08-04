@@ -125,7 +125,7 @@ export function VolumeBookCard({ volume, displayYear, isCurrent, stampCount, onP
       {onDelete && (
         <View style={styles.deleteHint}>
           <Ionicons name="chevron-up" size={px(14)} color={COLORS.outline} />
-          <Text style={styles.deleteHintText}>deslize para excluir</Text>
+          <Text style={styles.deleteHintText}>swipe to remove</Text>
         </View>
       )}
     </View>

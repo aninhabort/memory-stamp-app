@@ -35,7 +35,6 @@ export function ColorPicker({
 }: ColorPickerProps) {
   const handleCustomColorChange = (text: string) => {
     onCustomColorChange(text);
-    // Auto-apply valid hex colors
     if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
       onSelectColor(text);
     }
@@ -59,7 +58,7 @@ export function ColorPicker({
                 onSelectColor(color);
                 onToggleCustomMode(false);
               }}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             />
           );
         })}
@@ -68,13 +67,13 @@ export function ColorPicker({
             styles.colorCircle,
             styles.customColorButton,
             isCustomColorMode && styles.colorCircleActive,
-            isCustomColorMode && customColor && { backgroundColor: customColor },
+            isCustomColorMode && customColor ? { backgroundColor: customColor } : null,
           ]}
           onPress={() => onToggleCustomMode(true)}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
           {!isCustomColorMode || !customColor ? (
-            <Ionicons name="add-circle-outline" size={20} color={COLORS.onSurfaceVariant} />
+            <Ionicons name="add" size={16} color={COLORS.onSurfaceVariant} />
           ) : null}
         </TouchableOpacity>
       </View>
@@ -83,7 +82,7 @@ export function ColorPicker({
         <View style={styles.customColorInputContainer}>
           <TextInput
             style={styles.customColorInput}
-            placeholder="#HEX color (e.g., #FF5733)"
+            placeholder="#HEX (e.g. #FF5733)"
             placeholderTextColor={COLORS.outlineVariant}
             value={customColor}
             onChangeText={handleCustomColorChange}
@@ -107,20 +106,22 @@ const styles = StyleSheet.create({
   colorRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    // Left-aligned so color positions are predictable across viewport widths
+    justifyContent: 'flex-start',
+    gap: 11,
     paddingVertical: 4,
-    justifyContent: 'center',
   },
   colorCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     ...SHADOW_PAPER,
   },
+  // Active: dark ink border + subtle lift — like pressing a wax seal
   colorCircleActive: {
-    borderWidth: 3,
-    borderColor: COLORS.onSurface,
-    transform: [{ scale: 1.15 }],
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    transform: [{ scale: 1.1 }],
   },
   customColorButton: {
     backgroundColor: COLORS.surfaceContainerLow,
@@ -134,11 +135,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.outlineVariant,
+    borderTopColor: `${COLORS.outlineVariant}80`,
   },
   customColorInput: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 14,
+    fontSize: FONT_SIZES.labelStamp,
     color: COLORS.onSurface,
     textAlign: 'center',
     paddingVertical: 8,

@@ -17,11 +17,11 @@ export interface Category {
 }
 
 const CATEGORIES: Category[] = [
-  { key: 'viagem', label: 'Travel', icon: 'airplane-outline' },
-  { key: 'show', label: 'Show', icon: 'musical-notes-outline' },
-  { key: 'restaurante', label: 'Restaurant', icon: 'restaurant-outline' },
-  { key: 'evento', label: 'Event', icon: 'calendar-outline' },
-  { key: 'outro', label: 'Other', icon: 'star-outline' },
+  { key: 'viagem',      label: 'Travel',     icon: 'airplane-outline'      },
+  { key: 'show',        label: 'Show',        icon: 'musical-notes-outline' },
+  { key: 'restaurante', label: 'Restaurant',  icon: 'restaurant-outline'    },
+  { key: 'evento',      label: 'Event',       icon: 'calendar-outline'      },
+  { key: 'outro',       label: 'Other',       icon: 'star-outline'          },
 ];
 
 export interface CategoryPickerProps {
@@ -29,10 +29,7 @@ export interface CategoryPickerProps {
   onSelectCategory: (category: Stamp['category']) => void;
 }
 
-export function CategoryPicker({
-  selectedCategory,
-  onSelectCategory,
-}: CategoryPickerProps) {
+export function CategoryPicker({ selectedCategory, onSelectCategory }: CategoryPickerProps) {
   return (
     <View>
       <Text style={styles.sectionLabel}>CLASSIFICATION</Text>
@@ -52,7 +49,7 @@ export function CategoryPicker({
             >
               <Ionicons
                 name={icon}
-                size={13}
+                size={12}
                 color={active ? COLORS.white : COLORS.onSurfaceVariant}
               />
               <Text style={[styles.chipText, active && styles.chipTextActive]}>
@@ -76,17 +73,18 @@ const styles = StyleSheet.create({
   },
   chipsRow: {
     gap: 8,
-    paddingBottom: 4,
+    paddingBottom: 2,
   },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    borderWidth: 1.5,
+    // Inactive: hairline border — subtle, doesn't compete with content
+    borderWidth: 1,
     borderColor: COLORS.outlineVariant,
     borderRadius: RADIUS.full,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
   },
   chipActive: {
     backgroundColor: COLORS.secondary,
