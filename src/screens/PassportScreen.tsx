@@ -37,7 +37,7 @@ import {
   VOLUME_SHELF_SIDE_PADDING,
 } from '../constants/theme';
 import { Stamp, Volume } from '../types';
-import { getInitials } from '../utils/stampUtils';
+import { getInitials, toRoman } from '../utils/stampUtils';
 import { PassportStackParamList, RootTabParamList } from '../navigation/types';
 
 type PassportNavigation = CompositeNavigationProp<
@@ -82,6 +82,21 @@ export function PassportScreen() {
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const insets = useSafeAreaInsets();
+  
+  // Track if we've already processed the autoOpen param to avoid infinite loops
+  const autoOpenProcessedRef = useRef(false);
+  // Keep volumes and isOpen in sync with the latest state to avoid stale
+  // closures in the focus effect below, without needing them in its deps
+  // (which would re-run the cloud sync on every volume open/close).
+  const volumesRef = useRef(volumes);
+  const isOpenRef = useRef(isOpen);
+
+  useEffect(() => {
+    volumesRef.current = volumes;
+  }, [volumes]);
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
 
   // ── Animations ──────────────────────────────────────────────────────────────
   const shelfOpacity   = useRef(new Animated.Value(1)).current;
@@ -91,39 +106,50 @@ export function PassportScreen() {
   // Reload stamps, volumes and userName when screen comes into focus, pulling
   // the latest from the cloud first so changes made on another device show up.
   // If autoOpen param is set (navigated here after creating a stamp), open the
-  // most recent volume automatically so the new stamp is immediately visible.
+  // correct volume (either the one specified by returnToVolumeId or the most recent).
   useFocusEffect(
     useCallback(() => {
       (async () => {
         await Promise.all([syncStampsFromCloud(), syncVolumesFromCloud()]);
         await loadStamps();
         await reloadUserName();
-        if (route.params?.autoOpen) {
+
+        // Only process autoOpen once per navigation
+        if (route.params?.autoOpen && !autoOpenProcessedRef.current) {
+          autoOpenProcessedRef.current = true;
           navigation.setParams({ autoOpen: undefined });
-          // volumes state may not reflect the latest yet; read from the
-          // hook's in-memory list to pick the most recent passport.
-          const target = volumes[volumes.length - 1] ?? null;
-          if (target && !isOpen) {
+
+          // Use returnToVolumeId if provided, otherwise use the most recent volume
+          let target: Volume | null = null;
+          const returnToId = route.params?.returnToVolumeId;
+
+          if (returnToId) {
+            // Find the volume with the specific ID using the latest volumes ref
+            target = volumesRef.current.find(v => v.id === returnToId) ?? null;
+          }
+
+          // Fall back to most recent if returnToId wasn't provided or not found
+          if (!target) {
+            target = volumesRef.current[volumesRef.current.length - 1] ?? null;
+          }
+
+          if (target && !isOpenRef.current) {
             setSelectedVolume(target);
             shelfOpacity.setValue(0);
             shelfScale.setValue(0.94);
             setIsOpen(true);
             Animated.timing(contentOpacity, { toValue: 1, duration: 240, useNativeDriver: true }).start();
           }
+        } else {
+          // Reset flag when autoOpen is not present
+          if (!route.params?.autoOpen) {
+            autoOpenProcessedRef.current = false;
+          }
         }
       })();
     }, [syncStampsFromCloud, syncVolumesFromCloud, loadStamps, reloadUserName, route.params?.autoOpen]),
   );
 
-  // Hide tab bar on this screen
-  useEffect(() => {
-    const parent = navigation.getParent();
-    parent?.setOptions({
-      tabBarStyle: {
-        display: 'none',
-      },
-    });
-  }, [navigation]);
 
   // ── Open volume ───────────────────────────────────────────────────────────
   const handleVolumePress = (volume: Volume) => {
@@ -151,7 +177,12 @@ export function PassportScreen() {
     });
   };
 
-  const handleFabPress = () => navigation.navigate('Create');
+  const handleFabPress = () => {
+    // Pass volumeId if a volume is open, so the new stamp is filed there;
+    // otherwise the Create screen falls back to the 'default' volume.
+    navigation.navigate('Create', selectedVolume ? { volumeId: selectedVolume.id, returnToVolumeId: selectedVolume.id } : undefined);
+  };
+
   const handleStampPress = (stamp: Stamp) => navigation.navigate('StampDetail', { stamp });
 
   // ── Stamps for selected volume ────────────────────────────────────────────
@@ -372,18 +403,6 @@ export function PassportScreen() {
       />
     </View>
   );
-}
-
-// ─── Utility ───────────────────────────────────────────────────────────────────
-
-function toRoman(n: number): string {
-  const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
-  const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
-  let result = '';
-  for (let i = 0; i < vals.length; i++) {
-    while (n >= vals[i]) { result += syms[i]; n -= vals[i]; }
-  }
-  return result;
 }
 
 // ─── Styles ────────────────────────────────────────────────────────────────────

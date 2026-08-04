@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, SHADOW } from '../constants/theme';
+import { COLORS, FONTS, SHADOW_PAPER } from '../constants/theme';
 
 interface PassportCoverProps {
   stampCount: number;
@@ -42,7 +42,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderRadius: 12,
     padding: 3,
-    ...SHADOW,
+    ...SHADOW_PAPER,
   },
   innerBorder: {
     flex: 1,
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   title: {
-    fontFamily: FONTS.bold,
+    fontFamily: FONTS.headlineMd,
     fontSize: 13,
     color: COLORS.secondary,
     letterSpacing: 3,
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   subtitle: {
-    fontFamily: FONTS.regular,
+    fontFamily: FONTS.bodyMd,
     fontSize: 16,
     color: COLORS.background,
   },
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   counter: {
-    fontFamily: FONTS.regular,
+    fontFamily: FONTS.bodyMd,
     fontSize: 12,
     color: COLORS.secondary,
     letterSpacing: 1,

@@ -8,6 +8,7 @@ import {
   Platform,
   StyleSheet,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
@@ -41,15 +42,30 @@ for (let row = 0; row < 18; row++) {
  * Screen for creating a new stamp entry.
  * Provides the layout container and delegates form logic to StampForm component.
  */
-export function CreateStampScreen({ navigation }: Props) {
+export function CreateStampScreen({ navigation, route }: Props) {
   const { addStamp } = useStamps();
   const insets = useSafeAreaInsets();
+  const volumeId = route.params?.volumeId;
+  const returnToVolumeId = route.params?.returnToVolumeId;
 
   const handleSubmit = async (data: StampFormData) => {
-    await addStamp(data);
+    try {
+      await addStamp({
+        ...data,
+        volumeId: volumeId || 'default',
+      });
+    } catch (error) {
+      console.error('Error adding stamp:', error);
+      Alert.alert('Could not save', 'Your stamp could not be saved. Please try again.');
+      return;
+    }
     // Land on PassportHome (not whatever screen was last open in that stack)
-    // with autoOpen so the newly created stamp is immediately visible.
-    navigation.navigate('Passport', { screen: 'PassportHome', params: { autoOpen: true } });
+    // with autoOpen so the newly created stamp is immediately visible in the
+    // volume it was created in.
+    navigation.navigate('Passport', {
+      screen: 'PassportHome',
+      params: { autoOpen: true, returnToVolumeId: returnToVolumeId || 'default' },
+    });
   };
 
   const handleDiscard = () => {

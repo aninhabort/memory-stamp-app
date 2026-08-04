@@ -7,84 +7,6 @@ import { ImageStorageService } from '../services/imageStorage';
 import { PendingSyncService } from '../services/pendingSync';
 import { useAuth } from '../contexts/AuthContext';
 
-const SAMPLE_STAMPS: Stamp[] = [
-  {
-    id: '1',
-    title: 'Cristo Redentor',
-    place: 'Rio de Janeiro',
-    country: 'Brasil',
-    category: 'viagem',
-    icon: 'compass-outline',
-    color: '#27AE60',
-    date: '2024-01-20',
-    note: 'Vista incrível ao amanhecer!',
-    photos: [],
-    createdAt: new Date('2024-01-20').toISOString(),
-  },
-  {
-    id: '2',
-    title: 'Rock in Rio',
-    place: 'Rio de Janeiro',
-    country: 'Brasil',
-    category: 'show',
-    icon: 'musical-notes-outline',
-    color: '#9B59B6',
-    date: '2024-09-21',
-    photos: [],
-    createdAt: new Date('2024-09-21').toISOString(),
-  },
-  {
-    id: '3',
-    title: 'Kioku Omakase',
-    place: 'Tóquio',
-    country: 'Japão',
-    category: 'restaurante',
-    icon: 'restaurant-outline',
-    color: '#E74C3C',
-    date: '2024-04-10',
-    note: 'Melhor refeição da minha vida.',
-    photos: [],
-    createdAt: new Date('2024-04-10').toISOString(),
-  },
-  {
-    id: '4',
-    title: 'Carnaval de Veneza',
-    place: 'Veneza',
-    country: 'Itália',
-    category: 'evento',
-    icon: 'happy-outline',
-    color: '#E67E22',
-    date: '2024-02-13',
-    photos: [],
-    createdAt: new Date('2024-02-13').toISOString(),
-  },
-  {
-    id: '5',
-    title: 'Caminho de Santiago',
-    place: 'Santiago de Compostela',
-    country: 'Espanha',
-    category: 'viagem',
-    icon: 'flag-outline',
-    color: '#4A90D9',
-    date: '2024-06-30',
-    note: '800km, muitas histórias e ampolas.',
-    photos: [],
-    createdAt: new Date('2024-06-30').toISOString(),
-  },
-  {
-    id: '6',
-    title: 'Café Central',
-    place: 'Viena',
-    country: 'Áustria',
-    category: 'restaurante',
-    icon: 'cafe-outline',
-    color: '#1B2B4B',
-    date: '2024-11-03',
-    photos: [],
-    createdAt: new Date('2024-11-03').toISOString(),
-  },
-];
-
 // Legacy emoji to Ionicons name mapping
 const EMOJI_TO_IONICON: Record<string, string> = {
   '🌍': 'globe-outline',
@@ -323,7 +245,10 @@ export function useStamps() {
   }, [pushStampsToCloud]);
 
   const addStamp = useCallback(async (data: Omit<Stamp, 'id' | 'createdAt'>) => {
-    if (!userId) return;
+    // Throws instead of silently no-op'ing so the caller (CreateStampScreen)
+    // can tell the user the save failed instead of navigating away as if it
+    // had succeeded.
+    if (!userId) throw new Error('Cannot add a stamp while signed out');
     const now = new Date().toISOString();
     const stamp: Stamp = {
       ...data,
@@ -332,16 +257,12 @@ export function useStamps() {
       updatedAt: now,
     };
     const updated = [...stampsRef.current, stamp];
-    try {
-      await StorageService.setStamps(userId, updated);
-      setStamps(updated);
-      // Cloud sync (and any photo upload) is best-effort in the background —
-      // not awaited so it never blocks navigation when the cloud is slow or
-      // offline.
-      persistStampPhotos(userId, stamp.id, stamp.photos ?? []);
-    } catch (error) {
-      console.error('Error adding stamp:', error);
-    }
+    await StorageService.setStamps(userId, updated);
+    setStamps(updated);
+    // Cloud sync (and any photo upload) is best-effort in the background —
+    // not awaited so it never blocks navigation when the cloud is slow or
+    // offline.
+    persistStampPhotos(userId, stamp.id, stamp.photos ?? []);
   }, [userId, persistStampPhotos]);
 
   const updateStamp = useCallback(async (id: string, data: Omit<Stamp, 'id' | 'createdAt'>) => {

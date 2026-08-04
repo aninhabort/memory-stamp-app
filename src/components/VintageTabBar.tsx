@@ -27,15 +27,7 @@ const TAB_CONFIG: Record<
 export function VintageTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
 
-  // Check if the focused tab requested to hide the bar (e.g., PassportScreen closed)
-  const focusedRoute   = state.routes[state.index];
-  const focusedOptions = descriptors[focusedRoute.key].options;
-  if (focusedOptions.tabBarStyle) {
-    const s = Array.isArray(focusedOptions.tabBarStyle)
-      ? Object.assign({}, ...focusedOptions.tabBarStyle)
-      : focusedOptions.tabBarStyle;
-    if ((s as Record<string, unknown>).display === 'none') return null;
-  }
+  const focusedRoute = state.routes[state.index];
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 8) }]}>

@@ -63,7 +63,10 @@ export function EditStampScreen({ route, navigation }: Props) {
   };
 
   const handleSubmit = async (data: StampFormData) => {
-    await updateStamp(stamp.id, data);
+    await updateStamp(stamp.id, {
+      ...data,
+      volumeId: stamp.volumeId,
+    });
     // Pop back to the existing StampDetail in the stack (rather than
     // navigate, which in React Navigation v7 pushes a new screen instead of
     // reusing one already in the stack) with the updated stamp data so the
@@ -110,7 +113,7 @@ export function EditStampScreen({ route, navigation }: Props) {
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backBtn}
-              onPress={() => navigation.goBack()}
+              onPress={handleDiscard}
               activeOpacity={0.7}
             >
               <Ionicons name="arrow-back" size={18} color={COLORS.primary} />

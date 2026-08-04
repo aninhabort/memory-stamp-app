@@ -156,6 +156,19 @@ export function getNegativeNumber(id: string): string {
   return String((sum % 900) + 100).padStart(3, '0');
 }
 
+// ── Roman numeral converter ───────────────────────────────────────────────────
+
+/** Converts a positive integer to its Roman numeral string. e.g. 4 → "IV" */
+export function toRoman(n: number): string {
+  const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+  const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+  let result = '';
+  for (let i = 0; i < vals.length; i++) {
+    while (n >= vals[i]) { result += syms[i]; n -= vals[i]; }
+  }
+  return result;
+}
+
 // ── User / profile helpers ────────────────────────────────────────────────────
 
 /** Derives up to 2 uppercase initials from a display name. */

@@ -228,6 +228,7 @@ export function CollectionScreen() {
   );
 
   // ── Rodapé da lista (Latest Log) ──────────────────────────────────────────
+  const latestLogCover = latestLog ? resolveCoverPhoto(latestLog) : undefined;
   const ListFooter = latestLog ? (
     <TouchableOpacity
       style={styles.latestLogCard}
@@ -245,9 +246,9 @@ export function CollectionScreen() {
       </View>
 
       {/* Foto (se existir) */}
-      {resolveCoverPhoto(latestLog) ? (
+      {latestLogCover ? (
         <Image
-          source={{ uri: resolveCoverPhoto(latestLog) }}
+          source={{ uri: latestLogCover }}
           style={styles.latestLogPhoto}
           resizeMode="cover"
         />

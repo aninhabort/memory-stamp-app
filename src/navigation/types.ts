@@ -13,7 +13,7 @@ export type SettingsStackParamList = {
 
 // Passport tab stack
 export type PassportStackParamList = SettingsStackParamList & {
-  PassportHome: { autoOpen?: boolean } | undefined;
+  PassportHome: { autoOpen?: boolean; returnToVolumeId?: string } | undefined;
   StampDetail: { stamp: Stamp };
   EditStamp: { stamp: Stamp };
 };
@@ -22,7 +22,7 @@ export type PassportStackParamList = SettingsStackParamList & {
 export type RootTabParamList = {
   Passport: NavigatorScreenParams<PassportStackParamList> | undefined;
   Search: undefined;
-  Create: undefined;
+  Create: { volumeId?: string; returnToVolumeId?: string } | undefined;
   Collection: undefined;
 };
 

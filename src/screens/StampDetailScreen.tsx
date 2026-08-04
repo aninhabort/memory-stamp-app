@@ -207,7 +207,7 @@ export function StampDetailScreen({ route, navigation }: Props) {
         {/* ── Nota (se existir) ───────────────────────────────────────────── */}
         {stamp.note ? (
           <View style={[styles.noteCard, { borderLeftColor: stamp.color }]}>
-            <Text style={styles.noteTitle}>Field Notes</Text>
+            <Text style={styles.noteTitle}>Notes</Text>
             <Text style={styles.noteText}>{stamp.note}</Text>
           </View>
         ) : null}

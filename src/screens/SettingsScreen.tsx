@@ -201,7 +201,7 @@ export function SettingsScreen() {
             >
               <View style={styles.settingLeft}>
                 <Ionicons name="trash-outline" size={20} color="#c44e3f" />
-                <Text style={[styles.settingLabel, { color: '#c44e3f' }]}>
+                <Text style={[styles.settingLabel, { color: COLORS.error }]}>
                   Clear All Data
                 </Text>
                 <View style={styles.comingSoonBadge}>
@@ -298,7 +298,7 @@ export function SettingsScreen() {
             >
               <View style={styles.settingLeft}>
                 <Ionicons name="log-out-outline" size={20} color="#c44e3f" />
-                <Text style={[styles.settingLabel, { color: '#c44e3f' }]}>
+                <Text style={[styles.settingLabel, { color: COLORS.error }]}>
                   Log Out
                 </Text>
               </View>
