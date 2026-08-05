@@ -48,4 +48,26 @@ export const ImageStorageService = {
     const { error } = await supabase.storage.from(BUCKET).remove(paths);
     if (error) console.warn('Error deleting stamp photos from storage:', error);
   },
+
+  /** Uploads a local URI as the user's profile photo and returns its public URL. */
+  async uploadProfilePhoto(uid: string, localUri: string): Promise<string> {
+    const response = await fetch(localUri);
+    const blob = await response.blob();
+    const path = `${uid}/profile/photo.jpg`;
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+    if (error) throw error;
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
+    // Cache-bust so the new photo shows after replacing the old one
+    return `${data.publicUrl}?t=${Date.now()}`;
+  },
+
+  /** Deletes the user's profile photo from Storage. */
+  async deleteProfilePhoto(uid: string): Promise<void> {
+    const { error } = await supabase.storage
+      .from(BUCKET)
+      .remove([`${uid}/profile/photo.jpg`]);
+    if (error) console.warn('Error deleting profile photo:', error);
+  },
 };

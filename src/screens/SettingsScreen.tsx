@@ -5,14 +5,17 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  Image,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { useUserName } from '../hooks/useUserName';
+import { useProfilePhoto } from '../hooks/useProfilePhoto';
 import { useStamps } from '../hooks/useStamps';
 import { useAuth } from '../contexts/AuthContext';
 import { formatArrivalDate } from '../utils/stampUtils';
@@ -43,8 +46,10 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { userName, setUserName } = useUserName();
   const { stamps } = useStamps();
-  const { logout, userId, userCreatedAt } = useAuth();
+  const { logout, userId, userCreatedAt, linkedProviders, linkWithGoogle } = useAuth();
+  const [linkingGoogle, setLinkingGoogle] = useState(false);
 
+  const { profilePhotoUrl, uploading, pickAndUpload } = useProfilePhoto();
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(userName || '');
 
@@ -106,6 +111,18 @@ export function SettingsScreen() {
   const handlePrivacyPolicy = () => navigation.navigate('PrivacyPolicy');
   const handleTermsOfUse = () => navigation.navigate('TermsOfUse');
 
+  const handleLinkGoogle = async () => {
+    if (linkedProviders.includes('google')) return;
+    setLinkingGoogle(true);
+    try {
+      await linkWithGoogle();
+    } catch (err: any) {
+      Alert.alert('Connection Failed', err?.message ?? 'Could not connect Google account.');
+    } finally {
+      setLinkingGoogle(false);
+    }
+  };
+
   const handleLogout = () => {
     Alert.alert(
       'Leave Archive',
@@ -148,6 +165,31 @@ export function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>ARCHIVE IDENTITY</Text>
           <View style={styles.identityCard}>
+
+            {/* Profile photo */}
+            <TouchableOpacity style={styles.photoRow} onPress={pickAndUpload} activeOpacity={0.7} disabled={uploading}>
+              <View style={styles.photoContainer}>
+                {profilePhotoUrl ? (
+                  <Image source={{ uri: profilePhotoUrl }} style={styles.photoImage} />
+                ) : (
+                  <View style={styles.photoPlaceholder}>
+                    <Ionicons name="person-outline" size={22} color={COLORS.onSurfaceVariant} style={{ opacity: 0.4 }} />
+                  </View>
+                )}
+                <View style={styles.photoCameraBtn}>
+                  {uploading
+                    ? <ActivityIndicator size={10} color={COLORS.onPrimary} />
+                    : <Ionicons name="camera-outline" size={10} color={COLORS.onPrimary} />
+                  }
+                </View>
+              </View>
+              <View style={styles.photoInfo}>
+                <Text style={styles.photoLabel}>PROFILE PHOTO</Text>
+                <Text style={styles.photoHint}>{profilePhotoUrl ? 'Tap to change' : 'Tap to add'}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.identityDivider} />
 
             {/* Archivist — editable */}
             <View style={styles.identityField}>
@@ -201,6 +243,34 @@ export function SettingsScreen() {
               </View>
             </View>
 
+          </View>
+        </View>
+
+        {/* ── Connected Accounts ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>CONNECTED ACCOUNTS</Text>
+          <View style={styles.settingCard}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleLinkGoogle}
+              activeOpacity={linkedProviders.includes('google') ? 1 : 0.7}
+              disabled={linkedProviders.includes('google') || linkingGoogle}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="logo-google" size={13} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Google</Text>
+              </View>
+              {linkingGoogle ? (
+                <ActivityIndicator size="small" color={COLORS.primary} />
+              ) : linkedProviders.includes('google') ? (
+                <View style={styles.connectedBadge}>
+                  <Ionicons name="checkmark" size={9} color={COLORS.secondary} />
+                  <Text style={styles.connectedText}>LINKED</Text>
+                </View>
+              ) : (
+                <Text style={styles.connectText}>Connect</Text>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -424,6 +494,60 @@ const styles = StyleSheet.create({
     padding: 18,
     ...CARD_SHADOW,
   },
+  photoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+  },
+  photoContainer: {
+    position: 'relative',
+    width: 52,
+    height: 52,
+  },
+  photoImage: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    borderColor: COLORS.outlineVariant,
+  },
+  photoPlaceholder: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    borderWidth: 1.5,
+    borderColor: COLORS.outlineVariant,
+    backgroundColor: COLORS.surfaceContainerHigh,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoCameraBtn: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoInfo: {
+    gap: 3,
+  },
+  photoLabel: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 7,
+    color: COLORS.onSurface,
+    letterSpacing: 2,
+    opacity: 0.35,
+  },
+  photoHint: {
+    fontFamily: FONTS.bodyMd,
+    fontSize: 12,
+    color: COLORS.onSurfaceVariant,
+    opacity: 0.7,
+  },
   identityField: {
     gap: 4,
   },
@@ -535,6 +659,30 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.outlineVariant,
     marginVertical: 12,
     opacity: 0.6,
+  },
+
+  connectedBadge: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: COLORS.secondary,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 2,
+    opacity: 0.7,
+  },
+  connectedText: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 7,
+    color: COLORS.secondary,
+    letterSpacing: 1.5,
+  },
+  connectText: {
+    fontFamily: FONTS.bodyMd,
+    fontSize: 12,
+    color: COLORS.primary,
+    opacity: 0.85,
   },
 
   // ── PLANNED badge — small technical catalog tag ──

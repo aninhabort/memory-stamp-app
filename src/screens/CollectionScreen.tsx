@@ -20,6 +20,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useStamps } from '../hooks/useStamps';
 import { useUserName } from '../hooks/useUserName';
+import { useProfilePhoto } from '../hooks/useProfilePhoto';
 import { StampCard, CIRCLE_SIZE } from '../components/StampCard';
 import {
   COLORS,
@@ -141,6 +142,7 @@ export function CollectionScreen() {
   const navigation  = useNavigation<CollectionNavigation>();
   const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
   const { userName, reloadUserName } = useUserName();
+  const { profilePhotoUrl } = useProfilePhoto();
   const insets = useSafeAreaInsets();
 
   const [query,  setQuery]  = useState('');
@@ -261,9 +263,13 @@ export function CollectionScreen() {
         <View style={styles.profileRow}>
 
           {/* Avatar — reduced weight, secondary to the name */}
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initials || '?'}</Text>
-          </View>
+          {profilePhotoUrl ? (
+            <Image source={{ uri: profilePhotoUrl }} style={styles.avatarPhoto} />
+          ) : (
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials || '?'}</Text>
+            </View>
+          )}
 
           {/* Identity block — primary visual anchor */}
           <View style={styles.profileInfo}>
@@ -591,6 +597,12 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondary,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
+  },
+  avatarPhoto: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     flexShrink: 0,
   },
   avatarText: {

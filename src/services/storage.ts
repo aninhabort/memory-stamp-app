@@ -86,6 +86,29 @@ export const StorageService = {
     }
   },
 
+  async getProfilePhotoUrl(userId: string): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(buildKey(userId, 'profilePhotoUrl'));
+    } catch (error) {
+      console.error('Error loading profile photo url:', error);
+      return null;
+    }
+  },
+
+  async setProfilePhotoUrl(userId: string, url: string | null): Promise<void> {
+    try {
+      const key = buildKey(userId, 'profilePhotoUrl');
+      if (url === null) {
+        await AsyncStorage.removeItem(key);
+      } else {
+        await AsyncStorage.setItem(key, url);
+      }
+    } catch (error) {
+      console.error('Error saving profile photo url:', error);
+      throw error;
+    }
+  },
+
   /** Flags for which datasets still need to be retried against the cloud after a failed push. */
   async getPendingSync(userId: string): Promise<PendingSyncFlags> {
     try {

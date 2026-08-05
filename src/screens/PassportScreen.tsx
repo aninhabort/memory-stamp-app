@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Animated,
   Alert,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,6 +24,7 @@ import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { useStamps } from '../hooks/useStamps';
 import { useUserName } from '../hooks/useUserName';
 import { useVolumes } from '../hooks/useVolumes';
+import { useProfilePhoto } from '../hooks/useProfilePhoto';
 import { StampCard } from '../components/StampCard';
 import { VolumeBookCard } from '../components/VolumeBookCard';
 import { VolumeModal } from '../components/VolumeModal';
@@ -91,6 +93,7 @@ export function PassportScreen() {
   const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
   const { userName, reloadUserName } = useUserName();
   const { volumes, addVolume, updateVolume, deleteVolume, syncVolumesFromCloud } = useVolumes();
+  const { profilePhotoUrl } = useProfilePhoto();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -329,9 +332,13 @@ export function PassportScreen() {
                 onPress={() => navigation.navigate('Collection')}
                 activeOpacity={0.7}
               >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{getInitials(userName || 'Viajante') || '?'}</Text>
-                </View>
+                {profilePhotoUrl ? (
+                  <Image source={{ uri: profilePhotoUrl }} style={styles.avatarPhoto} />
+                ) : (
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>{getInitials(userName || 'Viajante') || '?'}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </View>
             <View style={styles.archivesDivider} />
@@ -486,6 +493,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surfaceContainerHigh,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  avatarPhoto: {
+    width: 44,
+    height: 44,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: COLORS.outlineVariant,
   },
   avatarText: {
     fontFamily: FONTS.labelStamp,

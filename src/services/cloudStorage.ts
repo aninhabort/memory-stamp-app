@@ -5,12 +5,14 @@ export interface UserData {
   stamps?: Stamp[];
   volumes?: Volume[];
   userName?: string;
+  profilePhotoUrl?: string;
 }
 
 interface UserDataRow {
   stamps: Stamp[] | null;
   volumes: Volume[] | null;
   user_name: string | null;
+  profile_photo_url: string | null;
 }
 
 /**
@@ -28,7 +30,7 @@ export const CloudStorageService = {
     const fetchRow = async () => {
       const { data, error } = await supabase
         .from('user_data')
-        .select('stamps, volumes, user_name')
+        .select('stamps, volumes, user_name, profile_photo_url')
         .eq('user_id', uid)
         .maybeSingle<UserDataRow>();
       if (error) throw error;
@@ -50,6 +52,7 @@ export const CloudStorageService = {
       stamps: row.stamps ?? undefined,
       volumes: row.volumes ?? undefined,
       userName: row.user_name ?? undefined,
+      profilePhotoUrl: row.profile_photo_url ?? undefined,
     };
   },
 
@@ -74,6 +77,13 @@ export const CloudStorageService = {
     const { error } = await supabase
       .from('user_data')
       .upsert({ user_id: uid, user_name: userName }, { onConflict: 'user_id' });
+    if (error) throw error;
+  },
+
+  async setProfilePhotoUrl(uid: string, url: string | null): Promise<void> {
+    const { error } = await supabase
+      .from('user_data')
+      .upsert({ user_id: uid, profile_photo_url: url }, { onConflict: 'user_id' });
     if (error) throw error;
   },
 };

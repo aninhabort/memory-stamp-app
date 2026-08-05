@@ -3,6 +3,7 @@ import type { Session } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../config/supabase';
 import { StorageService } from '../services/storage';
+import { CloudStorageService } from '../services/cloudStorage';
 
 const OAUTH_REDIRECT = 'memorystamp://auth';
 
@@ -14,9 +15,11 @@ interface AuthContextType {
   userEmail: string | null;
   userCreatedAt: string | null;
   hasAccount: boolean;
+  linkedProviders: string[];
   signup: (name: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  linkWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -30,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
   const [hasAccount, setHasAccount] = useState(false);
+  const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
 
   const applySession = async (session: Session | null) => {
     if (session?.user) {
@@ -45,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserEmail(session.user.email ?? null);
       setUserCreatedAt(session.user.created_at?.slice(0, 10) ?? null);
       setHasAccount(true);
+      setLinkedProviders(session.user.identities?.map(i => i.provider) ?? []);
 
       // Load user name: prefer local storage, fall back to OAuth metadata (Google etc.)
       try {
@@ -64,12 +69,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error('Error loading user name:', error);
       }
+
+      // Seed profile photo from OAuth provider (Google etc.) if not yet stored
+      try {
+        const storedPhoto = await StorageService.getProfilePhotoUrl(uid);
+        if (!storedPhoto) {
+          const metaPhoto =
+            (session.user.user_metadata?.avatar_url as string | undefined) ??
+            (session.user.user_metadata?.picture as string | undefined) ??
+            null;
+          if (metaPhoto) {
+            await StorageService.setProfilePhotoUrl(uid, metaPhoto);
+            await CloudStorageService.setProfilePhotoUrl(uid, metaPhoto);
+          }
+        }
+      } catch (error) {
+        console.warn('Could not seed profile photo from OAuth metadata:', error);
+      }
     } else {
       setIsAuthenticated(false);
       setUserId(null);
       setUserEmail(null);
       setUserCreatedAt(null);
       setUserName(null);
+      setLinkedProviders([]);
     }
   };
 
@@ -171,6 +194,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const linkWithGoogle = async () => {
+    const { data, error } = await supabase.auth.linkIdentity({
+      provider: 'google',
+      options: { redirectTo: OAUTH_REDIRECT },
+    });
+
+    if (error) throw error;
+
+    if (data.url) {
+      const result = await WebBrowser.openAuthSessionAsync(data.url, OAUTH_REDIRECT);
+
+      if (result.type === 'success' && result.url) {
+        const queryString = result.url.includes('?') ? result.url.split('?')[1] : '';
+        const params = new URLSearchParams(queryString);
+        const code = params.get('code');
+        if (!code) throw new Error('No authorization code received from Google');
+        const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+        if (sessionError) throw sessionError;
+        // onAuthStateChange fires automatically and refreshes identities
+      }
+    }
+  };
+
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -194,9 +240,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userEmail,
         userCreatedAt,
         hasAccount,
+        linkedProviders,
         signup,
         login,
         loginWithGoogle,
+        linkWithGoogle,
         logout,
       }}
     >
