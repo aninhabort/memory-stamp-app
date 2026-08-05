@@ -271,6 +271,18 @@ export function SettingsScreen() {
                 <Text style={styles.connectText}>Connect</Text>
               )}
             </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <View style={[styles.settingRow, { opacity: 0.4 }]}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="logo-apple" size={13} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Apple</Text>
+                <View style={styles.comingSoonBadge}>
+                  <Text style={styles.comingSoonText}>PLANNED</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
