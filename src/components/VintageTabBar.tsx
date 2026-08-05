@@ -46,7 +46,11 @@ export function VintageTabBar({ state, descriptors, navigation }: BottomTabBarPr
             canPreventDefault: true,
           });
           if (!focused && !event.defaultPrevented) {
-            navigation.navigate(route.name);
+            if (route.name === 'Create') {
+              navigation.navigate('Create', { from: focusedRoute.name });
+            } else {
+              navigation.navigate(route.name);
+            }
           }
         };
 

@@ -48,6 +48,12 @@ export function CreateStampScreen({ navigation, route }: Props) {
   const volumeId = route.params?.volumeId;
   const returnToVolumeId = route.params?.returnToVolumeId;
 
+  const VALID_TABS: (keyof RootTabParamList)[] = ['Passport', 'Search', 'Collection'];
+  const fromTab: keyof RootTabParamList =
+    VALID_TABS.includes(route.params?.from as keyof RootTabParamList)
+      ? (route.params!.from as keyof RootTabParamList)
+      : 'Passport';
+
   const handleSubmit = async (data: StampFormData) => {
     try {
       await addStamp({
@@ -69,7 +75,7 @@ export function CreateStampScreen({ navigation, route }: Props) {
   };
 
   const handleDiscard = () => {
-    navigation.navigate('Passport');
+    navigation.navigate(fromTab);
   };
 
   return (
@@ -106,7 +112,7 @@ export function CreateStampScreen({ navigation, route }: Props) {
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backBtn}
-              onPress={() => navigation.navigate('Passport')}
+              onPress={() => navigation.navigate(fromTab)}
               activeOpacity={0.7}
             >
               <Ionicons name="arrow-back" size={18} color={COLORS.primary} />

@@ -22,7 +22,7 @@ export type PassportStackParamList = SettingsStackParamList & {
 export type RootTabParamList = {
   Passport: NavigatorScreenParams<PassportStackParamList> | undefined;
   Search: undefined;
-  Create: { volumeId?: string; returnToVolumeId?: string } | undefined;
+  Create: { volumeId?: string; returnToVolumeId?: string; from?: string } | undefined;
   Collection: undefined;
 };
 

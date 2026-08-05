@@ -46,19 +46,36 @@ type PassportNavigation = CompositeNavigationProp<
 >;
 
 const VOLUME_INK = COLORS.onPrimary;
-const SHELF_ITEM_GAP = 16;
+const SHELF_ITEM_GAP = 10;
+
+// Proportional sizing for AddVolumeCard — matches VolumeBookCard's scaling approach
+const CARD_SCALE = VOLUME_CARD_WIDTH / 180;
+const cpx = (size: number) => Math.round(size * CARD_SCALE);
 
 // ─── AddVolumeCard ─────────────────────────────────────────────────────────────
 
 function AddVolumeCard({ onPress }: { onPress: () => void }) {
   return (
     <View style={styles.bookCardWrapper}>
-      <TouchableOpacity onPress={onPress} activeOpacity={0.65}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.75}>
         <View style={styles.addVolumeCard}>
-          <View style={styles.addVolumeIcon}>
-            <Ionicons name="add" size={28} color={COLORS.outlineVariant} />
+
+          {/* Authority label — same language as issued passports, more faint */}
+          <View style={styles.addVolumeTop}>
+            <Text style={styles.addAuthorityLabel}>MEMORY STAMP ARCHIVE</Text>
           </View>
-          <Text style={styles.addVolumeLabel}>{'NEW\nVOLUME'}</Text>
+
+          {/* Globe circle — dashed border indicates awaiting issuance */}
+          <View style={styles.addGlobeCircle}>
+            <Ionicons name="add" size={cpx(30)} color={VOLUME_INK} style={{ opacity: 0.22 }} />
+          </View>
+
+          {/* Footer — left-aligned document fields, same structure as issued passports */}
+          <View style={styles.addVolumeFooter}>
+            <Text style={styles.addVolumeFooterText}>Issue New Volume</Text>
+            <Text style={styles.addVolumeFooterSub}>Awaiting Archive</Text>
+          </View>
+
         </View>
       </TouchableOpacity>
     </View>
@@ -267,6 +284,7 @@ export function PassportScreen() {
         displayYear={displayYear}
         isCurrent={index === volumes.length - 1}
         stampCount={volStamps.length}
+        holderName={userName || undefined}
         onPress={() => handleVolumePress(vol)}
         onDelete={() => handleDeleteVolume(vol)}
       />
@@ -430,11 +448,11 @@ const styles = StyleSheet.create({
   profileBtn: {
     padding: 4,
   },
-  // Avatar as embossed seal — thin border, initials in ink, warm paper bg
+  // Avatar as archive seal — square stamp shape with thin border
   avatar: {
     width: 44,
     height: 44,
-    borderRadius: 22,
+    borderRadius: 6,
     borderWidth: 1.5,
     borderColor: COLORS.outlineVariant,
     backgroundColor: COLORS.surfaceContainerHigh,
@@ -488,13 +506,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  // Shelf instruction — minimal, archival tone
+  // Shelf instruction — fine print, guidance only, not a headline
   shelfHint: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 9,
     color: COLORS.onSurfaceVariant,
     textAlign: 'center',
-    opacity: 0.45,
+    opacity: 0.28,
     marginBottom: 8,
     letterSpacing: 0.5,
   },
@@ -530,40 +548,68 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // Placeholder card to add new volume
+  // Unissued passport — same physical presence as issued passports, muted spine
   addVolumeCard: {
     width: VOLUME_CARD_WIDTH,
     height: VOLUME_CARD_HEIGHT,
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderLeftWidth: 6,
+    backgroundColor: COLORS.primaryContainer,
+    borderLeftWidth: 8,
     borderLeftColor: COLORS.outlineVariant,
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+    borderTopRightRadius: 5,
+    borderBottomRightRadius: 5,
+    // Same shadow family as issued passports, slightly lighter (not yet "weighted")
+    shadowColor: '#000',
+    shadowOffset: { width: 4, height: 18 },
+    shadowOpacity: 0.18,
+    shadowRadius: 22,
+    elevation: 8,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 4, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 3,
+    justifyContent: 'space-between',
+    paddingTop: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 18,
   },
-  addVolumeIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    borderWidth: 1.5,
-    borderColor: COLORS.outlineVariant,
+  addVolumeTop: {
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  addVolumeLabel: {
+  addAuthorityLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelXs,
-    color: COLORS.outlineVariant,
-    letterSpacing: 2,
+    fontSize: cpx(7),
+    color: VOLUME_INK,
+    letterSpacing: 1.5,
+    opacity: 0.18,
     textAlign: 'center',
-    lineHeight: 16,
+  },
+  // Globe circle — dashed border signals the document is pending issuance
+  addGlobeCircle: {
+    width: cpx(70),
+    height: cpx(70),
+    borderRadius: cpx(35),
+    borderWidth: 1.5,
+    borderColor: 'rgba(213,227,255,0.15)',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addVolumeFooter: {
+    alignSelf: 'stretch',
+    alignItems: 'flex-start',
+    gap: 2,
+  },
+  addVolumeFooterText: {
+    fontFamily: FONTS.headlineSm,
+    fontSize: cpx(11),
+    color: VOLUME_INK,
+    letterSpacing: 0.5,
+    opacity: 0.38,
+  },
+  // Sole state indicator for the unissued card — typography only, no badge
+  addVolumeFooterSub: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: cpx(7),
+    color: VOLUME_INK,
+    letterSpacing: 1.5,
+    opacity: 0.32,
   },
 
   // ── Open state ──────────────────────────────────────────────────────────────

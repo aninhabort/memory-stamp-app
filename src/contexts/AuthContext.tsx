@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../config/supabase';
 import { StorageService } from '../services/storage';
+
+const OAUTH_REDIRECT = 'memorystamp://auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -9,9 +12,11 @@ interface AuthContextType {
   userId: string | null;
   userName: string | null;
   userEmail: string | null;
+  userCreatedAt: string | null;
   hasAccount: boolean;
   signup: (name: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -23,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
   const [hasAccount, setHasAccount] = useState(false);
 
   const applySession = async (session: Session | null) => {
@@ -37,6 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(true);
       setUserId(uid);
       setUserEmail(session.user.email ?? null);
+      setUserCreatedAt(session.user.created_at?.slice(0, 10) ?? null);
       setHasAccount(true);
 
       // Load user name from this account's own namespaced storage
@@ -50,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsAuthenticated(false);
       setUserId(null);
       setUserEmail(null);
+      setUserCreatedAt(null);
       setUserName(null);
     }
   };
@@ -129,6 +137,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // State will be updated by onAuthStateChange listener
   };
 
+  const loginWithGoogle = async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: OAUTH_REDIRECT },
+    });
+
+    if (error) throw error;
+
+    if (data.url) {
+      const result = await WebBrowser.openAuthSessionAsync(data.url, OAUTH_REDIRECT);
+
+      if (result.type === 'success' && result.url) {
+        const queryString = result.url.includes('?') ? result.url.split('?')[1] : '';
+        const params = new URLSearchParams(queryString);
+        const code = params.get('code');
+        if (!code) throw new Error('No authorization code received from Google');
+        const { error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+        if (sessionError) throw sessionError;
+        // onAuthStateChange fires automatically and updates state
+      }
+    }
+  };
+
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -150,9 +181,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userId,
         userName,
         userEmail,
+        userCreatedAt,
         hasAccount,
         signup,
         login,
+        loginWithGoogle,
         logout,
       }}
     >

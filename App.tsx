@@ -1,3 +1,4 @@
+import './src/lib/cryptoPolyfill';
 import React from 'react';
 import { View, Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
@@ -158,7 +159,18 @@ function CollectionNavigator() {
 // Main app
 
 function AppContent() {
-  const { isAuthenticated, isLoading, hasAccount, login, signup } = useAuth();
+  const { isAuthenticated, isLoading, hasAccount, login, signup, loginWithGoogle } = useAuth();
+
+  const handleGoogleLogin = async () => {
+    try {
+      await loginWithGoogle();
+    } catch (error) {
+      Alert.alert(
+        'Google Sign In Failed',
+        error instanceof Error ? error.message : 'Could not sign in with Google.'
+      );
+    }
+  };
   const [showSignUp, setShowSignUp] = React.useState<boolean | null>(null);
   const [fontsLoaded] = useFonts({
     LibreCaslonText_400Regular,
@@ -195,6 +207,7 @@ function AppContent() {
             }
           }}
           onNavigateToLogin={() => setShowSignUp(false)}
+          onGoogleLogin={handleGoogleLogin}
         />
       );
     }
@@ -213,6 +226,7 @@ function AppContent() {
           }
         }}
         onNavigateToSignUp={() => setShowSignUp(true)}
+        onGoogleLogin={handleGoogleLogin}
       />
     );
   }
