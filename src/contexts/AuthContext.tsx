@@ -46,10 +46,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserCreatedAt(session.user.created_at?.slice(0, 10) ?? null);
       setHasAccount(true);
 
-      // Load user name from this account's own namespaced storage
+      // Load user name: prefer local storage, fall back to OAuth metadata (Google etc.)
       try {
         const storedName = await StorageService.getUserName(uid);
-        setUserName(storedName);
+        if (storedName) {
+          setUserName(storedName);
+        } else {
+          const metaName =
+            (session.user.user_metadata?.full_name as string | undefined) ??
+            (session.user.user_metadata?.name as string | undefined) ??
+            null;
+          if (metaName) {
+            await StorageService.setUserName(uid, metaName);
+          }
+          setUserName(metaName);
+        }
       } catch (error) {
         console.error('Error loading user name:', error);
       }

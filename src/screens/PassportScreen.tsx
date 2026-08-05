@@ -4,6 +4,7 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
+  TextInput,
   StyleSheet,
   Animated,
   Alert,
@@ -89,10 +90,12 @@ export function PassportScreen() {
   const route = useRoute<RouteProp<PassportStackParamList, 'PassportHome'>>();
   const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
   const { userName, reloadUserName } = useUserName();
-  const { volumes, addVolume, deleteVolume, syncVolumesFromCloud } = useVolumes();
+  const { volumes, addVolume, updateVolume, deleteVolume, syncVolumesFromCloud } = useVolumes();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [renameInput, setRenameInput] = useState('');
   const insets = useSafeAreaInsets();
 
   // Track if we've already processed the autoOpen param to avoid infinite loops
@@ -156,6 +159,19 @@ export function PassportScreen() {
       })();
     }, [syncStampsFromCloud, syncVolumesFromCloud, loadStamps, reloadUserName, route.params?.autoOpen]),
   );
+
+  const handleRenameVolume = () => {
+    if (!selectedVolume) return;
+    setRenameInput(selectedVolume.name);
+    setShowRenameModal(true);
+  };
+
+  const handleConfirmRename = () => {
+    if (!selectedVolume || !renameInput.trim()) return;
+    updateVolume(selectedVolume.id, renameInput.trim());
+    setSelectedVolume(prev => prev ? { ...prev, name: renameInput.trim() } : prev);
+    setShowRenameModal(false);
+  };
 
   // ── Open volume ───────────────────────────────────────────────────────────
   const handleVolumePress = (volume: Volume) => {
@@ -377,9 +393,12 @@ export function PassportScreen() {
               <Text style={styles.closeBtnText}>BACK</Text>
             </TouchableOpacity>
 
-            <Text style={styles.openTitle} numberOfLines={1}>
-              {selectedVolume?.name ?? 'My Passport'}
-            </Text>
+            <TouchableOpacity style={styles.openTitleBtn} onPress={handleRenameVolume} activeOpacity={0.7}>
+              <Text style={styles.openTitle} numberOfLines={1}>
+                {selectedVolume?.name ?? 'My Passport'}
+              </Text>
+              <Ionicons name="pencil-outline" size={12} color={COLORS.onSurfaceVariant} style={{ opacity: 0.5 }} />
+            </TouchableOpacity>
 
             <Text style={styles.openCounter}>{volumeStamps.length} ENTRIES</Text>
           </View>
@@ -413,6 +432,15 @@ export function PassportScreen() {
         nextLabel={nextVolumeLabel}
         onClose={() => setShowAddModal(false)}
         onConfirm={handleCreateVolume}
+      />
+
+      <VolumeModal
+        visible={showRenameModal}
+        nextLabel={selectedVolume?.volumeLabel ?? ''}
+        initialName={selectedVolume?.name}
+        onClose={() => setShowRenameModal(false)}
+        onConfirm={handleConfirmRename}
+        mode="rename"
       />
     </View>
   );
@@ -638,8 +666,14 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     letterSpacing: 1.5,
   },
-  openTitle: {
+  openTitleBtn: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  openTitle: {
     fontFamily: FONTS.headlineSm,
     fontSize: 16,
     color: COLORS.primary,

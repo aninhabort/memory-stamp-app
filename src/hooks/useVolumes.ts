@@ -227,5 +227,17 @@ export function useVolumes() {
     return visible.length > 0 ? visible : [DEFAULT_VOLUME];
   }, [volumes]);
 
-  return { volumes: visibleVolumes, addVolume, deleteVolume, loadVolumes, syncVolumesFromCloud };
+  const updateVolume = useCallback(async (volumeId: string, name: string): Promise<void> => {
+    if (!userId) return;
+    const current = await StorageService.getVolumes(userId) ?? [DEFAULT_VOLUME];
+    const now = new Date().toISOString();
+    const updated = current.map((v) =>
+      v.id === volumeId ? { ...v, name: name.trim(), updatedAt: now } : v
+    );
+    await StorageService.setVolumes(userId, updated);
+    setVolumes(updated);
+    pushVolumesToCloud(userId, updated);
+  }, [userId, pushVolumesToCloud]);
+
+  return { volumes: visibleVolumes, addVolume, updateVolume, deleteVolume, loadVolumes, syncVolumesFromCloud };
 }

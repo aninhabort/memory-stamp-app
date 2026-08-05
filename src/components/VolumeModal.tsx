@@ -20,17 +20,20 @@ import {
 
 interface VolumeModalProps {
   visible: boolean;
-  nextLabel: string; // e.g., "VOLUME II"
+  nextLabel: string;
+  initialName?: string;
+  mode?: 'create' | 'rename';
   onClose: () => void;
   onConfirm: (name: string) => void;
 }
 
-/**
- * VolumeModal — Modal dialog for creating a new passport/volume.
- */
-export function VolumeModal({ visible, nextLabel, onClose, onConfirm }: VolumeModalProps) {
-  const [name, setName] = useState('');
+export function VolumeModal({ visible, nextLabel, initialName, mode = 'create', onClose, onConfirm }: VolumeModalProps) {
+  const [name, setName] = useState(initialName ?? '');
   const year = new Date().getFullYear();
+
+  React.useEffect(() => {
+    if (visible) setName(initialName ?? '');
+  }, [visible, initialName]);
 
   const handleConfirm = () => {
     const trimmed = name.trim();
@@ -44,13 +47,14 @@ export function VolumeModal({ visible, nextLabel, onClose, onConfirm }: VolumeMo
     onClose();
   };
 
+  const isRename = mode === 'rename';
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.modalOverlay}
       >
-        {/* Touch outside to close */}
         <TouchableOpacity
           style={StyleSheet.absoluteFill}
           onPress={handleClose}
@@ -58,14 +62,12 @@ export function VolumeModal({ visible, nextLabel, onClose, onConfirm }: VolumeMo
         />
 
         <View style={styles.modalCard}>
-          {/* Thumbnail of the volume to be created */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalNextLabel}>{nextLabel}</Text>
-            <Text style={styles.modalTitle}>New Passport</Text>
-            <Text style={styles.modalSubtitle}>EST. {year}</Text>
+            <Text style={styles.modalTitle}>{isRename ? 'Rename Passport' : 'New Passport'}</Text>
+            {!isRename && <Text style={styles.modalSubtitle}>EST. {year}</Text>}
           </View>
 
-          {/* Name field */}
           <TextInput
             style={styles.modalInput}
             value={name}
@@ -78,7 +80,6 @@ export function VolumeModal({ visible, nextLabel, onClose, onConfirm }: VolumeMo
             maxLength={40}
           />
 
-          {/* Actions */}
           <View style={styles.modalActions}>
             <TouchableOpacity
               style={styles.modalBtnSecondary}
@@ -93,7 +94,7 @@ export function VolumeModal({ visible, nextLabel, onClose, onConfirm }: VolumeMo
               activeOpacity={0.8}
               disabled={!name.trim()}
             >
-              <Text style={styles.modalBtnPrimaryText}>Create</Text>
+              <Text style={styles.modalBtnPrimaryText}>{isRename ? 'Save' : 'Create'}</Text>
             </TouchableOpacity>
           </View>
         </View>

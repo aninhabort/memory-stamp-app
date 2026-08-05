@@ -125,6 +125,12 @@ export function VolumeBookCard({
         </TouchableOpacity>
       </Animated.View>
 
+      {onDelete && (
+        <View style={styles.deleteHint}>
+          <Ionicons name="chevron-up" size={10} color={COLORS.onSurface} style={styles.deleteHintIcon} />
+          <Text style={styles.deleteHintText}>DELETE</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -132,6 +138,22 @@ export function VolumeBookCard({
 const styles = StyleSheet.create({
   bookCardWrapper: {
     alignItems: 'center',
+    gap: 6,
+  },
+  deleteHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    opacity: 0.18,
+  },
+  deleteHintIcon: {
+    opacity: 1,
+  },
+  deleteHintText: {
+    fontFamily: FONTS.labelStamp,
+    fontSize: 7,
+    color: COLORS.onSurface,
+    letterSpacing: 1.5,
   },
 
   // Passport cover — left spine, layered shadow for physical depth
