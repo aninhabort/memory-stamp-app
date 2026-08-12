@@ -5,9 +5,9 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Alert,
   Dimensions,
 } from 'react-native';
+import { AppDialog } from '../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
@@ -59,6 +59,7 @@ export function StampDetailScreen({ route, navigation }: Props) {
   const { deleteStamp } = useStamps();
   const insets = useSafeAreaInsets();
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+  const [deleteVisible, setDeleteVisible] = useState(false);
 
   const photos    = resolvePhotos(stamp);
   const hasPhotos = photos.length > 0;
@@ -76,24 +77,7 @@ export function StampDetailScreen({ route, navigation }: Props) {
     setCurrentPhotoIndex(index);
   };
 
-  const handleDelete = () => {
-    Alert.alert(
-      'Remove from Archive',
-      'This entry will be permanently removed from the collection.',
-      [
-        { text: 'Keep Entry', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            await deleteStamp(stamp.id);
-            await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            navigation.goBack();
-          },
-        },
-      ],
-    );
-  };
+  const handleDelete = () => setDeleteVisible(true);
 
   return (
     <View style={styles.screen}>
@@ -303,9 +287,29 @@ export function StampDetailScreen({ route, navigation }: Props) {
           activeOpacity={0.7}
         >
           <Ionicons name="pencil-outline" size={12} color={COLORS.onSurfaceVariant} style={{ opacity: 0.65 }} />
-          <Text style={styles.amendText}>amend</Text>
+          <Text style={styles.amendText}>edit</Text>
         </TouchableOpacity>
       </View>
+
+      <AppDialog
+        visible={deleteVisible}
+        onClose={() => setDeleteVisible(false)}
+        label="ARCHIVE REMOVAL"
+        title="Remove from Archive"
+        message="This entry will be permanently removed from the collection."
+        actions={[
+          { text: 'Keep Entry', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: async () => {
+              await deleteStamp(stamp.id);
+              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+              navigation.goBack();
+            },
+          },
+        ]}
+      />
 
     </View>
   );
@@ -380,7 +384,7 @@ const styles = StyleSheet.create({
   // Lowercase, typewriter weight — marginal correction annotation feel
   amendText: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 10,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 0.8,
     opacity: 0.7,
@@ -475,7 +479,7 @@ const styles = StyleSheet.create({
   },
   photoSectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     marginBottom: 8,
@@ -547,7 +551,7 @@ const styles = StyleSheet.create({
   // Labels recede — they are index terms, not content
   metaLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     opacity: 0.55,
@@ -555,7 +559,7 @@ const styles = StyleSheet.create({
   // Values advance — they are the record content
   metaValue: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 15,
+    fontSize: 17,
     color: COLORS.onSurface,
     maxWidth: '60%',
     textAlign: 'right',
@@ -563,7 +567,7 @@ const styles = StyleSheet.create({
   // Classification: no maxWidth, single line guaranteed
   metaValueInline: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 15,
+    fontSize: 17,
     color: COLORS.onSurface,
     textAlign: 'right',
   },
@@ -583,7 +587,7 @@ const styles = StyleSheet.create({
   },
   noteSectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     marginBottom: 10,
@@ -592,10 +596,10 @@ const styles = StyleSheet.create({
   // Plain typewriter text — no card, no border, no background
   noteText: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 15,
+    fontSize: 17,
     color: COLORS.onSurface,
     opacity: 0.82,
-    lineHeight: 24,
+    lineHeight: 26,
   },
 
   // ── Document footer ───────────────────────────────────────────────────────────
@@ -634,8 +638,8 @@ const styles = StyleSheet.create({
   deleteLinkText: {
     fontFamily: FONTS.labelStampRegular,
     fontSize: 9,
-    color: COLORS.outline,
+    color: '#C0392B',
     letterSpacing: 1,
-    opacity: 0.35,
+    opacity: 0.7,
   },
 });

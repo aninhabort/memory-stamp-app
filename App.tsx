@@ -37,6 +37,7 @@ import { LoginScreen }          from './src/screens/LoginScreen';
 import { SignUpScreen }         from './src/screens/SignUpScreen';
 import { VintageTabBar } from './src/components/VintageTabBar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { StampsProvider } from './src/contexts/StampsContext';
 import { COLORS } from './src/constants/theme';
 import {
   RootTabParamList,
@@ -233,17 +234,19 @@ function AppContent() {
 
   // Show main app if authenticated
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        tabBar={(props) => <VintageTabBar {...props} />}
-        screenOptions={{ headerShown: false }}
-      >
-        <Tab.Screen name="Passport"   component={PassportNavigator} />
-        <Tab.Screen name="Search"     component={SearchNavigator} />
-        <Tab.Screen name="Create"     component={CreateStampScreen} />
-        <Tab.Screen name="Collection" component={CollectionNavigator} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <StampsProvider>
+      <NavigationContainer>
+        <Tab.Navigator
+          tabBar={(props) => <VintageTabBar {...props} />}
+          screenOptions={{ headerShown: false }}
+        >
+          <Tab.Screen name="Passport"   component={PassportNavigator} />
+          <Tab.Screen name="Search"     component={SearchNavigator} />
+          <Tab.Screen name="Create"     component={CreateStampScreen} />
+          <Tab.Screen name="Collection" component={CollectionNavigator} />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </StampsProvider>
   );
 }
 

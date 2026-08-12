@@ -11,6 +11,8 @@ import {
   Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { AppDialog } from '../components/AppDialog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   useNavigation,
@@ -90,7 +92,7 @@ function AddVolumeCard({ onPress }: { onPress: () => void }) {
 export function PassportScreen() {
   const navigation = useNavigation<PassportNavigation>();
   const route = useRoute<RouteProp<PassportStackParamList, 'PassportHome'>>();
-  const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
+  const { stamps, loadStamps, syncStampsFromCloud, deleteStamp } = useStamps();
   const { userName, reloadUserName } = useUserName();
   const { volumes, addVolume, updateVolume, deleteVolume, syncVolumesFromCloud } = useVolumes();
   const { profilePhotoUrl } = useProfilePhoto();
@@ -98,6 +100,7 @@ export function PassportScreen() {
   const [selectedVolume, setSelectedVolume] = useState<Volume | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
+  const [dialogStamp, setDialogStamp] = useState<Stamp | null>(null);
   const [renameInput, setRenameInput] = useState('');
   const insets = useSafeAreaInsets();
 
@@ -210,6 +213,11 @@ export function PassportScreen() {
 
   const handleStampPress = (stamp: Stamp) => navigation.navigate('StampDetail', { stamp });
 
+  const handleStampLongPress = (stamp: Stamp) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setDialogStamp(stamp);
+  };
+
   // The 'default' volume displays all stamps without volumeId (backwards compatible).
   const volumeStamps = !selectedVolume || selectedVolume.id === 'default'
     ? stamps.filter(s => !s.volumeId || s.volumeId === 'default')
@@ -249,7 +257,7 @@ export function PassportScreen() {
   // ── Renders ────────────────────────────────────────────────────────────────
 
   const renderStampItem = ({ item, index }: { item: Stamp; index: number }) => (
-    <TouchableOpacity onPress={() => handleStampPress(item)} activeOpacity={0.85}>
+    <TouchableOpacity onPress={() => handleStampPress(item)} onLongPress={() => handleStampLongPress(item)} activeOpacity={0.85}>
       <StampCard stamp={item} index={index} />
     </TouchableOpacity>
   );
@@ -426,7 +434,7 @@ export function PassportScreen() {
           {/* Archival action button — stamp-pill shape, not a circular FAB */}
           <View style={styles.fabContainer} pointerEvents="box-none">
             <TouchableOpacity style={styles.fab} onPress={handleFabPress} activeOpacity={0.8}>
-              <Ionicons name="create-outline" size={16} color={COLORS.white} />
+              <Ionicons name="create-outline" size={22} color={COLORS.white} />
               <Text style={styles.fabLabel}>NEW ENTRY</Text>
             </TouchableOpacity>
           </View>
@@ -448,6 +456,21 @@ export function PassportScreen() {
         onClose={() => setShowRenameModal(false)}
         onConfirm={handleConfirmRename}
         mode="rename"
+      />
+      <AppDialog
+        visible={!!dialogStamp}
+        onClose={() => setDialogStamp(null)}
+        label="ARCHIVE REMOVAL"
+        title={dialogStamp?.title ?? ''}
+        message="Remove this entry from the archive?"
+        actions={[
+          { text: 'Keep Entry', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => dialogStamp && deleteStamp(dialogStamp.id),
+          },
+        ]}
       />
     </View>
   );
@@ -532,7 +555,7 @@ const styles = StyleSheet.create({
   },
   archivesMeta: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     opacity: 0.55,
@@ -551,7 +574,7 @@ const styles = StyleSheet.create({
   // Shelf instruction — fine print, guidance only, not a headline
   shelfHint: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.onSurfaceVariant,
     textAlign: 'center',
     opacity: 0.28,
@@ -704,28 +727,29 @@ const styles = StyleSheet.create({
 
   // Compact passport card — ListHeaderComponent for stamps grid
   compactStrip: {
-    height: 108,
     backgroundColor: COLORS.primaryContainer,
     borderRadius: RADIUS.lg,
     marginBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: SPACING.elementGap,
+    paddingVertical: 16,
     gap: 12,
     ...SHADOW_PAPER,
   },
   compactGlobe: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 1.5,
     borderColor: 'rgba(213,227,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   compactInfo: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   compactLabel: {
     fontFamily: FONTS.labelStamp,
@@ -733,17 +757,18 @@ const styles = StyleSheet.create({
     color: COLORS.onPrimaryContainer,
     letterSpacing: 2,
     opacity: 0.7,
-    marginBottom: 2,
+    marginBottom: 1,
   },
   compactName: {
     fontFamily: FONTS.headlineSm,
-    fontSize: 15,
+    fontSize: 20,
     color: VOLUME_INK,
+    lineHeight: 24,
   },
   // Volume name — secondary context below the traveller's name
   compactVolumeName: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 11,
+    fontSize: 12,
     color: VOLUME_INK,
     opacity: 0.5,
     letterSpacing: 0.5,
@@ -751,18 +776,19 @@ const styles = StyleSheet.create({
   // Entry count as a structured document field: number + label stacked
   compactCountBlock: {
     alignItems: 'center',
-    minWidth: 48,
+    minWidth: 52,
+    flexShrink: 0,
   },
   compactCountNum: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 22,
+    fontSize: 28,
     color: COLORS.secondaryContainer,
     opacity: 0.75,
-    lineHeight: 26,
+    lineHeight: 30,
   },
   compactCountLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 7,
+    fontSize: 8,
     color: COLORS.onPrimaryContainer,
     letterSpacing: 2,
     opacity: 0.5,

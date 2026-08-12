@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   circlePlace: {
     marginTop: 6,
     fontFamily: FONTS.labelStamp,
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.onSurface,
     letterSpacing: 0.5,
     textAlign: 'center',
@@ -199,11 +199,11 @@ const styles = StyleSheet.create({
   },
   sealTitle: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 1,
     textAlign: 'center',
     marginTop: 4,
-    lineHeight: 11,
+    lineHeight: 14,
   },
   sealLine: {
     width: 22,
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
   },
   sealDate: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     letterSpacing: 0.5,
     opacity: 0.85,
   },
@@ -261,17 +261,17 @@ const styles = StyleSheet.create({
   },
   listTitle: {
     fontFamily: FONTS.headlineSm,
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.onSurface,
   },
   listSub: {
     fontFamily: FONTS.bodyMd,
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
   },
   listDate: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.outline,
   },
   listArrow: {

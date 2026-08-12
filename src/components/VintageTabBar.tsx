@@ -63,7 +63,7 @@ export function VintageTabBar({ state, descriptors, navigation }: BottomTabBarPr
           >
             <Ionicons
               name={focused ? config.iconActive : config.icon}
-              size={20}
+              size={26}
               color={focused ? COLORS.secondary : COLORS.onSurfaceVariant}
             />
             <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
@@ -98,14 +98,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 6,
     paddingHorizontal: 12,
+    minHeight: 44,
     borderRadius: 999,
     gap: 3,
   },
   tabLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 0.8,
+    letterSpacing: 0.5,
   },
   tabLabelActive: {
     color: COLORS.secondary,

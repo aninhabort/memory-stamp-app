@@ -118,7 +118,7 @@ export function LoginScreen({ onLogin, onNavigateToSignUp, onGoogleLogin }: Logi
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={13} color={COLORS.outline} />
+              <Ionicons name="mail-outline" size={20} color={COLORS.outline} />
               <TextInput
                 style={styles.input}
                 value={email}
@@ -137,7 +137,7 @@ export function LoginScreen({ onLogin, onNavigateToSignUp, onGoogleLogin }: Logi
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>PASSWORD</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={13} color={COLORS.outline} />
+              <Ionicons name="lock-closed-outline" size={20} color={COLORS.outline} />
               <TextInput
                 style={styles.input}
                 value={password}
@@ -153,7 +153,7 @@ export function LoginScreen({ onLogin, onNavigateToSignUp, onGoogleLogin }: Logi
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={13}
+                  size={20}
                   color={COLORS.outline}
                 />
               </TouchableOpacity>
@@ -174,7 +174,7 @@ export function LoginScreen({ onLogin, onNavigateToSignUp, onGoogleLogin }: Logi
             disabled={!email.trim() || !password.trim()}
           >
             <Text style={styles.submitBtnText}>ACCESS ARCHIVE</Text>
-            <Ionicons name="arrow-forward" size={13} color={COLORS.white} />
+            <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
           </TouchableOpacity>
 
           {/* OR separator */}
@@ -191,7 +191,7 @@ export function LoginScreen({ onLogin, onNavigateToSignUp, onGoogleLogin }: Logi
             onPress={handleGoogleLogin}
             disabled={loadingGoogle}
           >
-            <Ionicons name="logo-google" size={13} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
+            <Ionicons name="logo-google" size={20} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
             <Text style={styles.altBtnText}>
               {loadingGoogle ? 'Connecting...' : 'Continue with Google'}
             </Text>
@@ -203,7 +203,7 @@ export function LoginScreen({ onLogin, onNavigateToSignUp, onGoogleLogin }: Logi
             activeOpacity={0.75}
             onPress={() => Alert.alert('Coming Soon', 'Apple authentication will be available soon.')}
           >
-            <Ionicons name="logo-apple" size={13} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
+            <Ionicons name="logo-apple" size={20} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
             <Text style={styles.altBtnText}>Continue with Apple</Text>
           </TouchableOpacity>
 
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 8,
+    fontSize: 14,
     color: COLORS.onSurface,
     letterSpacing: 1.5,
     opacity: 0.4,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: FONTS.bodyMd,
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.onSurface,
     padding: 0,
   },
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   },
   submitBtnText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelStamp,
+    fontSize: 16,
     color: COLORS.white,
     letterSpacing: 1.5,
   },

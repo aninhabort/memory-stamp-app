@@ -76,14 +76,14 @@ export const FONTS = {
 
 // Typographic Scale (px)
 export const FONT_SIZES = {
-  displayLg:  32,
-  headlineMd: 24,
-  headlineSm: 20,
+  displayLg:  30,
+  headlineMd: 28,
+  headlineSm: 22,
   bodyLg:     18,
   bodyMd:     16,
   labelStamp: 14,
-  labelCaps:  12,
-  labelXs:    10,
+  labelCaps:  13,
+  labelXs:    11,
 };
 
 // Spacing

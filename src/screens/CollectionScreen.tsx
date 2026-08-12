@@ -9,6 +9,8 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { AppDialog } from '../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -140,10 +142,11 @@ type GridCell = Stamp | { type: 'add' };
 
 export function CollectionScreen() {
   const navigation  = useNavigation<CollectionNavigation>();
-  const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
+  const { stamps, loadStamps, syncStampsFromCloud, deleteStamp } = useStamps();
   const { userName, reloadUserName } = useUserName();
   const { profilePhotoUrl } = useProfilePhoto();
   const insets = useSafeAreaInsets();
+  const [dialogStamp, setDialogStamp] = useState<Stamp | null>(null);
 
   const [query,  setQuery]  = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
@@ -228,6 +231,11 @@ export function CollectionScreen() {
   const handleAddPress       = () => navigation.navigate('Create');
   const handleLatestLogPress = () => { if (latestJourney) navigation.navigate('StampDetail', { stamp: latestJourney }); };
 
+  const handleStampLongPress = useCallback((stamp: Stamp) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setDialogStamp(stamp);
+  }, []);
+
   // ── Grid item renderer ────────────────────────────────────────────────────────
 
   const renderItem = ({ item, index }: { item: GridCell; index: number }) => {
@@ -242,7 +250,7 @@ export function CollectionScreen() {
       );
     }
     return (
-      <TouchableOpacity style={styles.gridCellWrapper} onPress={() => handleStampPress(item)} activeOpacity={0.85}>
+      <TouchableOpacity style={styles.gridCellWrapper} onPress={() => handleStampPress(item)} onLongPress={() => handleStampLongPress(item)} activeOpacity={0.85}>
         <StampCard stamp={item} index={index} variant="grid" />
       </TouchableOpacity>
     );
@@ -449,6 +457,7 @@ export function CollectionScreen() {
                 key={stamp.id}
                 style={[styles.logEntry, i < timeline.length - 1 && styles.logEntryBorder]}
                 onPress={() => handleStampPress(stamp)}
+                onLongPress={() => handleStampLongPress(stamp)}
                 activeOpacity={0.75}
               >
                 {/* Entry reference number */}
@@ -548,6 +557,21 @@ export function CollectionScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       />
+      <AppDialog
+        visible={!!dialogStamp}
+        onClose={() => setDialogStamp(null)}
+        label="ARCHIVE REMOVAL"
+        title={dialogStamp?.title ?? ''}
+        message="Remove this entry from the archive?"
+        actions={[
+          { text: 'Keep Entry', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => dialogStamp && deleteStamp(dialogStamp.id),
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -562,7 +586,7 @@ const styles = StyleSheet.create({
   section: { marginBottom: 20 },
   sectionTitle: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 2,
     marginBottom: 8,
@@ -819,16 +843,16 @@ const styles = StyleSheet.create({
   },
   directiveTitle: {
     fontFamily: FONTS.headlineMd,
-    fontSize: 15,
+    fontSize: 17,
     color: COLORS.onSurface,
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   directiveDesc: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
-    lineHeight: 16,
+    lineHeight: 18,
   },
   directiveDivider: {
     height: 1,
@@ -928,15 +952,15 @@ const styles = StyleSheet.create({
   },
   journeyMetaText: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
   },
   journeyNote: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 13,
     color: COLORS.onSurface,
     opacity: 0.85,
-    lineHeight: 18,
+    lineHeight: 20,
     fontStyle: 'italic',
   },
   journeyFooter: {
@@ -1015,18 +1039,18 @@ const styles = StyleSheet.create({
   },
   logDate: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.secondary,
     letterSpacing: 1,
   },
   logTitle: {
     fontFamily: FONTS.headlineSm,
-    fontSize: FONT_SIZES.labelStamp,
+    fontSize: 16,
     color: COLORS.onSurface,
   },
   logPlace: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
   },
 
@@ -1053,7 +1077,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 18,
+    fontSize: 22,
     color: COLORS.secondary,
     letterSpacing: 0.5,
   },
@@ -1094,7 +1118,7 @@ const styles = StyleSheet.create({
   },
   insigniaLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 8,
+    fontSize: 11,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 0.5,
     textAlign: 'center',

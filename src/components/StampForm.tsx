@@ -9,6 +9,7 @@ import {
   Animated,
   Modal,
 } from 'react-native';
+import { AppDialog } from './AppDialog';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Haptics from 'expo-haptics';
@@ -87,6 +88,7 @@ export function StampForm({
   const [customEmoji,      setCustomEmoji]      = useState(initialIconIsCustom ? initialData!.icon : '');
   const [isCustomEmojiMode, setIsCustomEmojiMode] = useState(initialIconIsCustom);
   const [isSaving, setIsSaving] = useState(false);
+  const [discardVisible, setDiscardVisible] = useState(false);
 
   const stampScaleAnim = useRef(new Animated.Value(1)).current;
   const sealOpacity    = useRef(new Animated.Value(0)).current;
@@ -200,15 +202,7 @@ export function StampForm({
     }
   };
 
-  const handleDiscard = () => {
-    Alert.alert('Discard entry?', 'All changes will be lost.', [
-      { text: 'Continue editing', style: 'cancel' },
-      {
-        text: 'Discard', style: 'destructive',
-        onPress: () => { resetForm(); onDiscard(); },
-      },
-    ]);
-  };
+  const handleDiscard = () => setDiscardVisible(true);
 
   return (
     <>
@@ -262,7 +256,7 @@ export function StampForm({
               value={place}
               onChangeText={setPlace}
             />
-            <Ionicons name="location-outline" size={14} color={COLORS.outline} />
+            <Ionicons name="location-outline" size={20} color={COLORS.outline} />
           </View>
         </View>
 
@@ -276,7 +270,7 @@ export function StampForm({
               value={country}
               onChangeText={setCountry}
             />
-            <Ionicons name="globe-outline" size={14} color={COLORS.outline} />
+            <Ionicons name="globe-outline" size={20} color={COLORS.outline} />
           </View>
         </View>
 
@@ -292,7 +286,7 @@ export function StampForm({
               keyboardType="numbers-and-punctuation"
               maxLength={10}
             />
-            <Ionicons name="calendar-outline" size={14} color={COLORS.outline} />
+            <Ionicons name="calendar-outline" size={20} color={COLORS.outline} />
           </View>
         </View>
 
@@ -311,7 +305,7 @@ export function StampForm({
             />
             <Ionicons
               name="document-text-outline"
-              size={14}
+              size={20}
               color={COLORS.outline}
               style={styles.noteIcon}
             />
@@ -461,6 +455,22 @@ export function StampForm({
           </Animated.View>
         </Animated.View>
       </Modal>
+
+      <AppDialog
+        visible={discardVisible}
+        onClose={() => setDiscardVisible(false)}
+        label="DISCARD CHANGES"
+        title="Discard entry?"
+        message="All changes will be lost."
+        actions={[
+          { text: 'Keep editing', style: 'cancel' },
+          {
+            text: 'Discard',
+            style: 'destructive',
+            onPress: () => { resetForm(); onDiscard(); },
+          },
+        ]}
+      />
     </>
   );
 }
@@ -515,7 +525,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     marginBottom: 12,
@@ -528,7 +538,7 @@ const styles = StyleSheet.create({
   },
   fieldLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 13,
     color: COLORS.outline,
     letterSpacing: 1.5,
     marginBottom: 6,
@@ -549,7 +559,7 @@ const styles = StyleSheet.create({
   },
   fieldInputMono: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelStamp,
+    fontSize: 16,
     color: COLORS.onSurface,
     paddingVertical: 9,
     paddingRight: 4,

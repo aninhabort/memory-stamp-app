@@ -9,6 +9,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { AppDialog } from '../components/AppDialog';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -49,7 +51,8 @@ const CATEGORY_FILTERS: { value: Stamp['category'] | 'all'; label: string }[] = 
 
 export function SearchScreen() {
   const navigation = useNavigation<SearchNavigation>();
-  const { stamps, loadStamps, syncStampsFromCloud } = useStamps();
+  const { stamps, loadStamps, syncStampsFromCloud, deleteStamp } = useStamps();
+  const [dialogStamp, setDialogStamp] = useState<Stamp | null>(null);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<Stamp['category'] | 'all'>('all');
   const [country, setCountry] = useState<string>('all');
@@ -90,11 +93,17 @@ export function SearchScreen() {
   const handleStampPress = (stamp: Stamp) =>
     navigation.navigate('StampDetail', { stamp });
 
+  const handleStampLongPress = useCallback((stamp: Stamp) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setDialogStamp(stamp);
+  }, []);
+
   // ── Each result row — catalog entry format ────────────────────────────────
   const renderItem = ({ item }: { item: Stamp }) => (
     <TouchableOpacity
       style={styles.resultItem}
       onPress={() => handleStampPress(item)}
+      onLongPress={() => handleStampLongPress(item)}
       activeOpacity={0.8}
     >
       <View style={styles.resultLeft}>
@@ -264,6 +273,21 @@ export function SearchScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+      <AppDialog
+        visible={!!dialogStamp}
+        onClose={() => setDialogStamp(null)}
+        label="ARCHIVE REMOVAL"
+        title={dialogStamp?.title ?? ''}
+        message="Remove this entry from the archive?"
+        actions={[
+          { text: 'Keep Entry', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => dialogStamp && deleteStamp(dialogStamp.id),
+          },
+        ]}
+      />
     </View>
   );
 }
@@ -312,7 +336,7 @@ const styles = StyleSheet.create({
   },
   archivesMeta: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     opacity: 0.55,
@@ -344,7 +368,7 @@ const styles = StyleSheet.create({
   },
   filterSectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 2,
     opacity: 0.7,
@@ -369,7 +393,7 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 10,
+    fontSize: 14,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
   },
@@ -419,19 +443,19 @@ const styles = StyleSheet.create({
   // Serif title — catalog entry heading
   resultTitle: {
     fontFamily: FONTS.headlineSm,
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.onSurface,
   },
   resultMeta: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 10,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 0.8,
   },
   // Arrival-stamp date format: 20.JAN.24
   resultDate: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.outline,
     letterSpacing: 0.5,
   },

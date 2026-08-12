@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   // Issuing authority — printed very faint, like pre-press text on passport covers
   authorityLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(7),
+    fontSize: px(9),
     color: VOLUME_INK,
     letterSpacing: 1.5,
     opacity: 0.3,
@@ -198,7 +198,7 @@ const styles = StyleSheet.create({
   },
   volumeLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(10),
+    fontSize: px(12),
     color: VOLUME_INK,
     letterSpacing: 4,
     opacity: 0.85,
@@ -224,7 +224,7 @@ const styles = StyleSheet.create({
   // Holder name — uppercase, the most prominent footer field
   holderName: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(10),
+    fontSize: px(12),
     color: VOLUME_INK,
     letterSpacing: 1.5,
     opacity: 0.9,
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
   // Volume name — secondary, slightly receded
   bookFooterTitle: {
     fontFamily: FONTS.headlineSm,
-    fontSize: px(11),
+    fontSize: px(13),
     color: VOLUME_INK,
     letterSpacing: 0.5,
     opacity: 0.6,
@@ -254,14 +254,14 @@ const styles = StyleSheet.create({
   },
   bookFooterYear: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(8),
+    fontSize: px(10),
     color: VOLUME_INK,
     letterSpacing: 1.5,
     opacity: 0.5,
   },
   footerEntries: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(8),
+    fontSize: px(10),
     color: VOLUME_INK,
     letterSpacing: 1,
     opacity: 0.5,
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   // Passport number — legible enough to feel printed, not invisible
   passportNo: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(7),
+    fontSize: px(9),
     color: VOLUME_INK,
     letterSpacing: 1,
     opacity: 0.42,

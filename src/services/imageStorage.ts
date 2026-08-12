@@ -1,3 +1,4 @@
+import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '../config/supabase';
 
 const BUCKET = 'stamp-photos';
@@ -15,6 +16,18 @@ function extractStoragePath(url: string): string | null {
   return index === -1 ? null : url.slice(index + marker.length);
 }
 
+// fetch() with local file:// or content:// URIs is unreliable in React Native.
+// expo-file-system reads local files correctly on both iOS and Android.
+async function readLocalFileAsUint8Array(uri: string): Promise<Uint8Array> {
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' });
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
 export const ImageStorageService = {
   /**
    * Uploads any on-device photo URIs for a stamp to Supabase Storage and
@@ -25,12 +38,11 @@ export const ImageStorageService = {
     return Promise.all(
       photos.map(async (uri, index) => {
         if (isRemoteUrl(uri)) return uri;
-        const response = await fetch(uri);
-        const blob = await response.blob();
+        const bytes = await readLocalFileAsUint8Array(uri);
         const path = `${uid}/${stampId}/${Date.now()}-${index}.jpg`;
         const { error } = await supabase.storage
           .from(BUCKET)
-          .upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true });
+          .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
         if (error) throw error;
         const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
         return data.publicUrl;
@@ -51,12 +63,11 @@ export const ImageStorageService = {
 
   /** Uploads a local URI as the user's profile photo and returns its public URL. */
   async uploadProfilePhoto(uid: string, localUri: string): Promise<string> {
-    const response = await fetch(localUri);
-    const blob = await response.blob();
+    const bytes = await readLocalFileAsUint8Array(localUri);
     const path = `${uid}/profile/photo.jpg`;
     const { error } = await supabase.storage
       .from(BUCKET)
-      .upload(path, blob, { contentType: 'image/jpeg', upsert: true });
+      .upload(path, bytes, { contentType: 'image/jpeg', upsert: true });
     if (error) throw error;
     const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
     // Cache-bust so the new photo shows after replacing the old one

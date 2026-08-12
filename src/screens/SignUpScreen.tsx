@@ -145,7 +145,7 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>ARCHIVIST NAME</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="person-outline" size={13} color={COLORS.outline} />
+              <Ionicons name="person-outline" size={20} color={COLORS.outline} />
               <TextInput
                 style={styles.input}
                 value={name}
@@ -163,7 +163,7 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>EMAIL ADDRESS</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={13} color={COLORS.outline} />
+              <Ionicons name="mail-outline" size={20} color={COLORS.outline} />
               <TextInput
                 style={styles.input}
                 value={email}
@@ -182,7 +182,7 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>ACCESS KEY</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={13} color={COLORS.outline} />
+              <Ionicons name="lock-closed-outline" size={20} color={COLORS.outline} />
               <TextInput
                 style={styles.input}
                 value={password}
@@ -197,7 +197,7 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={13}
+                  size={20}
                   color={COLORS.outline}
                 />
               </TouchableOpacity>
@@ -208,7 +208,7 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
           <View style={styles.inputGroup}>
             <Text style={styles.inputLabel}>CONFIRM ACCESS KEY</Text>
             <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={13} color={COLORS.outline} />
+              <Ionicons name="lock-closed-outline" size={20} color={COLORS.outline} />
               <TextInput
                 style={styles.input}
                 value={confirmPassword}
@@ -224,7 +224,7 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
               <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                 <Ionicons
                   name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={13}
+                  size={20}
                   color={COLORS.outline}
                 />
               </TouchableOpacity>
@@ -239,7 +239,7 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
             disabled={!isFormValid}
           >
             <Text style={styles.submitBtnText}>ISSUE PASSPORT</Text>
-            <Ionicons name="arrow-forward" size={13} color={COLORS.white} />
+            <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
           </TouchableOpacity>
 
           {/* OR separator */}
@@ -256,7 +256,7 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
             onPress={handleGoogleLogin}
             disabled={loadingGoogle}
           >
-            <Ionicons name="logo-google" size={13} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
+            <Ionicons name="logo-google" size={20} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
             <Text style={styles.altBtnText}>
               {loadingGoogle ? 'Connecting...' : 'Continue with Google'}
             </Text>
@@ -268,7 +268,7 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
             activeOpacity={0.75}
             onPress={() => Alert.alert('Coming Soon', 'Apple authentication will be available soon.')}
           >
-            <Ionicons name="logo-apple" size={13} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
+            <Ionicons name="logo-apple" size={20} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
             <Text style={styles.altBtnText}>Continue with Apple</Text>
           </TouchableOpacity>
 
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 8,
+    fontSize: 14,
     color: COLORS.onSurface,
     letterSpacing: 1.5,
     opacity: 0.4,
@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontFamily: FONTS.bodyMd,
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.onSurface,
     padding: 0,
   },
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   },
   submitBtnText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelStamp,
+    fontSize: 16,
     color: COLORS.white,
     letterSpacing: 1.5,
   },

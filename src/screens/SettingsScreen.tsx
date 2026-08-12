@@ -152,7 +152,6 @@ export function SettingsScreen() {
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>SETTINGS</Text>
-          <Text style={styles.headerSubtitle}>Archive Administration</Text>
         </View>
         <View style={styles.headerRight} />
       </View>
@@ -257,7 +256,7 @@ export function SettingsScreen() {
               disabled={linkedProviders.includes('google') || linkingGoogle}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="logo-google" size={13} color={COLORS.onSurface} />
+                <Ionicons name="logo-google" size={20} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Google</Text>
               </View>
               {linkingGoogle ? (
@@ -276,7 +275,7 @@ export function SettingsScreen() {
 
             <View style={[styles.settingRow, { opacity: 0.4 }]}>
               <View style={styles.settingLeft}>
-                <Ionicons name="logo-apple" size={13} color={COLORS.onSurface} />
+                <Ionicons name="logo-apple" size={20} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Apple</Text>
                 <View style={styles.comingSoonBadge}>
                   <Text style={styles.comingSoonText}>PLANNED</Text>
@@ -296,7 +295,7 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="download-outline" size={13} color={COLORS.onSurface} />
+                <Ionicons name="download-outline" size={20} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Export Data</Text>
                 <View style={styles.comingSoonBadge}>
                   <Text style={styles.comingSoonText}>PLANNED</Text>
@@ -313,7 +312,7 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="trash-outline" size={13} color="#c44e3f" />
+                <Ionicons name="trash-outline" size={20} color="#c44e3f" />
                 <Text style={[styles.settingLabel, { color: COLORS.error }]}>
                   Clear All Data
                 </Text>
@@ -336,7 +335,7 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="mail-outline" size={13} color={COLORS.onSurface} />
+                <Ionicons name="mail-outline" size={20} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Contact Support</Text>
               </View>
               <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
@@ -350,7 +349,7 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="help-circle-outline" size={13} color={COLORS.onSurface} />
+                <Ionicons name="help-circle-outline" size={20} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>FAQ</Text>
               </View>
               <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
@@ -364,7 +363,7 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="shield-outline" size={13} color={COLORS.onSurface} />
+                <Ionicons name="shield-outline" size={20} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Privacy Policy</Text>
               </View>
               <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
@@ -378,7 +377,7 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="document-text-outline" size={13} color={COLORS.onSurface} />
+                <Ionicons name="document-text-outline" size={20} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Terms of Use</Text>
               </View>
               <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
@@ -392,7 +391,7 @@ export function SettingsScreen() {
           <View style={styles.settingCard}>
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
-                <Ionicons name="information-circle-outline" size={13} color={COLORS.onSurface} />
+                <Ionicons name="information-circle-outline" size={20} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Archive Revision</Text>
               </View>
               <Text style={styles.settingValue}>1.0.0</Text>
@@ -410,7 +409,7 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="log-out-outline" size={13} color="#c44e3f" />
+                <Ionicons name="log-out-outline" size={20} color="#c44e3f" />
                 <Text style={[styles.settingLabel, { color: COLORS.error }]}>
                   Leave Archive
                 </Text>
@@ -492,7 +491,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     marginBottom: 8,
