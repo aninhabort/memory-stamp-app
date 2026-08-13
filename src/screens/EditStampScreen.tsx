@@ -190,6 +190,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     minWidth: 72,
+    paddingVertical: 12,
   },
   backText: {
     fontFamily: FONTS.labelCaps,

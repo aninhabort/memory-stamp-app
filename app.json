@@ -7,6 +7,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "androidStatusBar": {
+      "barStyle": "dark-content"
+    },
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -15,8 +18,8 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "NSCameraUsageDescription": "Usado para adicionar fotos às suas memórias",
-        "NSPhotoLibraryUsageDescription": "Usado para escolher fotos das suas memórias"
+        "NSCameraUsageDescription": "Memory Stamp uses your camera so you can capture a new photo for a stamp.",
+        "NSPhotoLibraryUsageDescription": "Memory Stamp uses your photo library so you can choose a picture to add to a stamp."
       }
     },
     "android": {
@@ -27,8 +30,7 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.READ_EXTERNAL_STORAGE"
       ],
       "package": "com.aninhabort.memorystampapp"
     },
@@ -40,8 +42,9 @@
       [
         "expo-image-picker",
         {
-          "cameraPermission": "Usado para adicionar fotos às suas memórias",
-          "photosPermission": "Usado para escolher fotos das suas memórias"
+          "cameraPermission": "Memory Stamp uses your camera so you can capture a new photo for a stamp.",
+          "photosPermission": "Memory Stamp uses your photo library so you can choose a picture to add to a stamp.",
+          "recordAudioAndroid": false
         }
       ],
       "expo-web-browser"

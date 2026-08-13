@@ -5,6 +5,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 // Libre Caslon Text — headlines com autoridade literária
 import {
@@ -35,6 +36,7 @@ import { TermsOfUseScreen }     from './src/screens/TermsOfUseScreen';
 import { LoadingScreen }        from './src/screens/LoadingScreen';
 import { LoginScreen }          from './src/screens/LoginScreen';
 import { SignUpScreen }         from './src/screens/SignUpScreen';
+import { ConsentGateScreen }    from './src/screens/ConsentGateScreen';
 import { VintageTabBar } from './src/components/VintageTabBar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { StampsProvider } from './src/contexts/StampsContext';
@@ -160,7 +162,7 @@ function CollectionNavigator() {
 // Main app
 
 function AppContent() {
-  const { isAuthenticated, isLoading, hasAccount, login, signup, loginWithGoogle } = useAuth();
+  const { isAuthenticated, isLoading, hasAccount, consentStatus, login, signup, loginWithGoogle } = useAuth();
 
   const handleGoogleLogin = async () => {
     try {
@@ -232,7 +234,21 @@ function AppContent() {
     );
   }
 
-  // Show main app if authenticated
+  // Authenticated, but the current consent status isn't resolved yet
+  // (session just changed — the check runs in AuthContext.applySession).
+  if (consentStatus === 'checking') {
+    return <LoadingScreen />;
+  }
+
+  // Blocking safety-net: this session has no current-version Terms/Privacy
+  // consent recorded (Google OAuth signup, email confirmation completed on
+  // another device, or a pre-existing account) — cannot proceed until
+  // accepted. See ConsentGateScreen for details.
+  if (consentStatus === 'required') {
+    return <ConsentGateScreen />;
+  }
+
+  // Show main app if authenticated and consent is current
   return (
     <StampsProvider>
       <NavigationContainer>
@@ -254,6 +270,14 @@ function AppContent() {
 export default function App() {
   return (
     <SafeAreaProvider>
+      {/* Mounted once, globally — every screen in the app (auth, tabs,
+          settings) uses the same cream background, so the status bar
+          should always show dark icons/text regardless of which screen
+          is active. See app.json's androidStatusBar.barStyle for the
+          matching native-default fix on Android (this JS-level control
+          takes effect immediately in Expo Go/dev client; the app.json
+          setting fixes the native theme default for standalone builds). */}
+      <StatusBar style="dark" />
       <AuthProvider>
         <AppContent />
       </AuthProvider>

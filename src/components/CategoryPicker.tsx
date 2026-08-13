@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Stamp } from '../types';
-import { COLORS, FONTS, FONT_SIZES, RADIUS } from '../constants/theme';
+import { COLORS, FONTS, RADIUS } from '../constants/theme';
 
 export interface Category {
   key: Stamp['category'];
@@ -49,7 +49,7 @@ export function CategoryPicker({ selectedCategory, onSelectCategory }: CategoryP
             >
               <Ionicons
                 name={icon}
-                size={12}
+                size={15}
                 color={active ? COLORS.white : COLORS.onSurfaceVariant}
               />
               <Text style={[styles.chipText, active && styles.chipTextActive]}>
@@ -66,7 +66,7 @@ export function CategoryPicker({ selectedCategory, onSelectCategory }: CategoryP
 const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     marginBottom: 12,
@@ -78,13 +78,13 @@ const styles = StyleSheet.create({
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     // Inactive: hairline border — subtle, doesn't compete with content
     borderWidth: 1,
     borderColor: COLORS.outlineVariant,
     borderRadius: RADIUS.full,
     paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingVertical: 9,
   },
   chipActive: {
     backgroundColor: COLORS.secondary,
@@ -92,9 +92,9 @@ const styles = StyleSheet.create({
   },
   chipText: {
     fontFamily: FONTS.labelCaps,
-    fontSize: FONT_SIZES.labelCaps,
+    fontSize: 15,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   chipTextActive: {
     color: COLORS.white,

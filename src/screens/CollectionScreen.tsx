@@ -295,8 +295,9 @@ export function CollectionScreen() {
             style={styles.settingsBtn}
             onPress={() => navigation.navigate('Settings')}
             activeOpacity={0.7}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
           >
-            <Ionicons name="settings-outline" size={16} color={COLORS.onPrimaryContainer} />
+            <Ionicons name="settings-outline" size={18} color={COLORS.onPrimaryContainer} />
           </TouchableOpacity>
         </View>
 
@@ -330,7 +331,7 @@ export function CollectionScreen() {
           >
             <Ionicons
               name={sortBy === 'date' ? 'calendar-outline' : 'text-outline'}
-              size={11}
+              size={14}
               color={COLORS.secondary}
             />
             <Text style={styles.sortPillText}>{sortBy === 'date' ? 'DATE' : 'A–Z'}</Text>
@@ -339,7 +340,7 @@ export function CollectionScreen() {
 
         {/* Search — embedded as a form field on the document */}
         <View style={styles.searchField}>
-          <Ionicons name="search-outline" size={12} color={COLORS.outline} />
+          <Ionicons name="search-outline" size={18} color={COLORS.outline} />
           <TextInput
             style={styles.searchInput}
             placeholder="Search entries..."
@@ -350,8 +351,8 @@ export function CollectionScreen() {
             returnKeyType="search"
           />
           {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close-circle" size={12} color={COLORS.outline} />
+            <TouchableOpacity onPress={() => setQuery('')} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <Ionicons name="close-circle" size={16} color={COLORS.outline} />
             </TouchableOpacity>
           )}
         </View>
@@ -417,7 +418,7 @@ export function CollectionScreen() {
             ) : null}
 
             <View style={styles.journeyMetaRow}>
-              <Ionicons name="location-outline" size={11} color={COLORS.secondary} />
+              <Ionicons name="location-outline" size={14} color={COLORS.secondary} />
               <Text style={styles.journeyMetaText}>
                 {latestJourney.place}{latestJourney.country ? `, ${latestJourney.country}` : ''}
               </Text>
@@ -475,7 +476,7 @@ export function CollectionScreen() {
                   </Text>
                 </View>
 
-                <Ionicons name="chevron-forward" size={12} color={COLORS.outlineVariant} />
+                <Ionicons name="chevron-forward" size={15} color={COLORS.outlineVariant} />
               </TouchableOpacity>
             ))}
           </View>
@@ -519,7 +520,12 @@ export function CollectionScreen() {
                 size={20}
                 color={badge.unlocked ? COLORS.secondary : COLORS.outlineVariant}
               />
-              <Text style={[styles.insigniaLabel, badge.unlocked && styles.insigniaLabelUnlocked]}>
+              <Text
+                style={[styles.insigniaLabel, badge.unlocked && styles.insigniaLabelUnlocked]}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.85}
+              >
                 {badge.label.toUpperCase()}
               </Text>
             </View>
@@ -659,20 +665,20 @@ const styles = StyleSheet.create({
   },
   rankPillText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.secondaryContainer,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   rankTitle: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 13,
     color: COLORS.onPrimaryContainer,
   },
   profileMeta: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 12,
     color: COLORS.onPrimaryContainer,
-    opacity: 0.7,
+    opacity: 0.75,
     letterSpacing: 0.3,
   },
   settingsBtn: {
@@ -702,9 +708,9 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 13,
     color: COLORS.onPrimaryContainer,
-    opacity: 0.75,
+    opacity: 0.8,
     letterSpacing: 0.3,
   },
 
@@ -763,9 +769,9 @@ const styles = StyleSheet.create({
   },
   sortPillText: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.secondary,
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   searchField: {
     flexDirection: 'row',
@@ -778,7 +784,7 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 15,
     color: COLORS.onSurface,
     fontStyle: 'italic',
     paddingVertical: 0,
@@ -809,10 +815,10 @@ const styles = StyleSheet.create({
   },
   addCellLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 12,
     color: COLORS.outline,
     marginTop: 8,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
     textAlign: 'center',
     maxWidth: CIRCLE_SIZE,
   },
@@ -837,9 +843,9 @@ const styles = StyleSheet.create({
   },
   directiveEyebrow: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.secondary,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
   directiveTitle: {
     fontFamily: FONTS.headlineMd,
@@ -868,16 +874,16 @@ const styles = StyleSheet.create({
   },
   rewardEyebrow: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.2,
+    letterSpacing: 1,
   },
   rewardValue: {
     flex: 1,
     fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 13,
     color: COLORS.secondary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   directiveProgressRow: {
     flexDirection: 'row',
@@ -898,9 +904,9 @@ const styles = StyleSheet.create({
   },
   directiveCount: {
     fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 13,
     color: COLORS.secondary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
     minWidth: 36,
     textAlign: 'right',
   },
@@ -936,9 +942,9 @@ const styles = StyleSheet.create({
   },
   memoBadgeText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.secondary,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
   journeyPhoto: {
     width: '100%',
@@ -973,15 +979,15 @@ const styles = StyleSheet.create({
   },
   journeyCode: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1,
+    letterSpacing: 0.8,
   },
   readEntry: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.secondary,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
 
   // ── Expedition Log ────────────────────────────────────────────────────────────
@@ -1000,9 +1006,9 @@ const styles = StyleSheet.create({
   },
   logBookHeaderText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.onPrimary,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     opacity: 0.85,
   },
   logEntry: {
@@ -1020,7 +1026,7 @@ const styles = StyleSheet.create({
   // Archival reference number
   logRef: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 0.5,
     width: 20,
@@ -1083,7 +1089,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 8,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
     textAlign: 'center',
   },
@@ -1097,7 +1103,7 @@ const styles = StyleSheet.create({
   insigniaBadge: {
     width: BADGE_SIZE,
     borderRadius: RADIUS.md,
-    padding: 10,
+    padding: 8,
     alignItems: 'center',
     gap: 6,
   },
@@ -1120,8 +1126,9 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.labelStamp,
     fontSize: 11,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
     textAlign: 'center',
+    lineHeight: 14,
   },
   insigniaLabelUnlocked: {
     color: COLORS.onSurface,

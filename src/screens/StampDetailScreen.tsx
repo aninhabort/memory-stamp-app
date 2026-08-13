@@ -201,7 +201,7 @@ export function StampDetailScreen({ route, navigation }: Props) {
             <View style={styles.metaCategoryInline}>
               <Ionicons
                 name={CATEGORY_ICONS[stamp.category]}
-                size={9}
+                size={14}
                 color={COLORS.onSurfaceVariant}
                 style={{ opacity: 0.6 }}
               />
@@ -286,7 +286,7 @@ export function StampDetailScreen({ route, navigation }: Props) {
           onPress={() => navigation.navigate('EditStamp', { stamp })}
           activeOpacity={0.7}
         >
-          <Ionicons name="pencil-outline" size={12} color={COLORS.onSurfaceVariant} style={{ opacity: 0.65 }} />
+          <Ionicons name="pencil-outline" size={14} color={COLORS.onSurfaceVariant} style={{ opacity: 0.65 }} />
           <Text style={styles.amendText}>edit</Text>
         </TouchableOpacity>
       </View>
@@ -355,6 +355,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     minWidth: 72,
+    paddingVertical: 12,
   },
   backText: {
     fontFamily: FONTS.labelCaps,
@@ -369,10 +370,10 @@ const styles = StyleSheet.create({
   // Document type classification — not a screen name
   headerTitle: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 2.5,
-    opacity: 0.65,
+    letterSpacing: 2,
+    opacity: 0.7,
   },
   headerRight: {
     minWidth: 72,
@@ -380,6 +381,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-end',
     gap: 3,
+    paddingVertical: 12,
   },
   // Lowercase, typewriter weight — marginal correction annotation feel
   amendText: {
@@ -524,10 +526,10 @@ const styles = StyleSheet.create({
   },
   metaArchiveLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 8,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 2,
-    opacity: 0.5,
+    letterSpacing: 1.5,
+    opacity: 0.6,
   },
   metaArchiveValue: {
     fontFamily: FONTS.labelStamp,
@@ -551,10 +553,10 @@ const styles = StyleSheet.create({
   // Labels recede — they are index terms, not content
   metaLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5,
-    opacity: 0.55,
+    letterSpacing: 1.2,
+    opacity: 0.65,
   },
   // Values advance — they are the record content
   metaValue: {
@@ -633,13 +635,13 @@ const styles = StyleSheet.create({
   // ── Archive removal — footnote-level visibility, never competes ───────────────
   deleteLink: {
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 14,
   },
   deleteLinkText: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 9,
+    fontSize: 13,
     color: '#C0392B',
-    letterSpacing: 1,
-    opacity: 0.7,
+    letterSpacing: 0.5,
+    opacity: 0.75,
   },
 });

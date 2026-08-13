@@ -285,9 +285,9 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     marginBottom: 8,
   },
   input: {

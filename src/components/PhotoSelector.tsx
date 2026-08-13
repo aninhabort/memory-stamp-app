@@ -44,7 +44,7 @@ export function PhotoSelector({
         <View style={[styles.corner, styles.cornerBL]} />
         <View style={[styles.corner, styles.cornerBR]} />
 
-        <Ionicons name="camera-outline" size={20} color={COLORS.outline} />
+        <Ionicons name="camera-outline" size={22} color={COLORS.outline} />
         <Text style={styles.photoEmptyTitle}>PHOTOGRAPHIC EVIDENCE</Text>
         <Text style={styles.photoEmptyHint}>Tap to attach a photograph</Text>
       </TouchableOpacity>
@@ -68,7 +68,7 @@ export function PhotoSelector({
             <TouchableOpacity
               style={styles.photoRemoveBtn}
               onPress={() => onRemovePhoto(i)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              hitSlop={{ top: 13, bottom: 13, left: 13, right: 13 }}
             >
               <Ionicons name="close" size={10} color={COLORS.white} />
             </TouchableOpacity>
@@ -145,9 +145,9 @@ const styles = StyleSheet.create({
   cornerBR: { bottom: 10, right: 12, borderBottomWidth: 1.5, borderRightWidth: 1.5, borderColor: COLORS.outlineVariant },
   photoEmptyTitle: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.outline,
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
   photoEmptyHint: {
     fontFamily: FONTS.labelStampRegular,
@@ -214,9 +214,9 @@ const styles = StyleSheet.create({
   slotCornerBR: { bottom: 7, right: 7, borderBottomWidth: 1, borderRightWidth: 1, borderColor: COLORS.outlineVariant },
   photoAddSlotText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 8,
+    fontSize: 11,
     color: COLORS.outline,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
 
   // ── Dots & counter ───────────────────────────────────────────────────────────
@@ -237,9 +237,9 @@ const styles = StyleSheet.create({
   },
   photoCounter: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1,
-    opacity: 0.5,
+    letterSpacing: 0.8,
+    opacity: 0.6,
   },
 });

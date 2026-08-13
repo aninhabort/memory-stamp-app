@@ -81,4 +81,37 @@ export const ImageStorageService = {
       .remove([`${uid}/profile/photo.jpg`]);
     if (error) console.warn('Error deleting profile photo:', error);
   },
+
+  /**
+   * Deletes every object under this user's `{uid}/` prefix (all stamp
+   * photos plus the profile photo) — used by account deletion. Two-level
+   * list matching the only key shapes this app writes: `{uid}/{stampId}/{file}`
+   * and `{uid}/profile/photo.jpg`. Deleting rows out of `storage.objects` via
+   * SQL only removes metadata, not the physical blobs, so this must go
+   * through the Storage SDK — hence it's client-side, not part of the
+   * account-deletion RPC.
+   */
+  async deleteAllUserObjects(uid: string): Promise<void> {
+    const { data: entries, error } = await supabase.storage.from(BUCKET).list(uid, { limit: 1000 });
+    if (error) throw error;
+
+    const paths: string[] = [];
+    for (const entry of entries ?? []) {
+      if (entry.id === null) {
+        // A "folder" (e.g. a stampId or "profile") — list its contents.
+        const { data: nested, error: nestedError } = await supabase.storage
+          .from(BUCKET)
+          .list(`${uid}/${entry.name}`, { limit: 1000 });
+        if (nestedError) throw nestedError;
+        for (const file of nested ?? []) paths.push(`${uid}/${entry.name}/${file.name}`);
+      } else {
+        paths.push(`${uid}/${entry.name}`);
+      }
+    }
+
+    if (paths.length) {
+      const { error: removeError } = await supabase.storage.from(BUCKET).remove(paths);
+      if (removeError) throw removeError;
+    }
+  },
 };

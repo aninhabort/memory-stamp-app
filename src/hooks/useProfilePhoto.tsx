@@ -4,11 +4,13 @@ import { StorageService } from '../services/storage';
 import { CloudStorageService } from '../services/cloudStorage';
 import { ImageStorageService } from '../services/imageStorage';
 import { useAuth } from '../contexts/AuthContext';
+import { usePhotoPermission } from './usePhotoPermission';
 
 export function useProfilePhoto() {
   const { userId } = useAuth();
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const { requestAccess: requestPhotoAccess, PermissionDialog: photoPermissionDialog } = usePhotoPermission();
 
   const loadProfilePhoto = useCallback(async () => {
     if (!userId) { setProfilePhotoUrl(null); return; }
@@ -37,11 +39,8 @@ export function useProfilePhoto() {
     })();
   }, [userId, loadProfilePhoto]);
 
-  const pickAndUpload = useCallback(async () => {
+  const launchPickerAndUpload = useCallback(async () => {
     if (!userId) return;
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') return;
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: 'images',
       allowsEditing: true,
@@ -63,6 +62,13 @@ export function useProfilePhoto() {
     }
   }, [userId]);
 
+  // Permission is requested here — lazily, only when the user taps to
+  // change their profile photo — never on mount.
+  const pickAndUpload = useCallback(() => {
+    if (!userId) return;
+    requestPhotoAccess(launchPickerAndUpload);
+  }, [userId, requestPhotoAccess, launchPickerAndUpload]);
+
   // Called from AuthContext after OAuth login to store the provider avatar
   const setFromUrl = useCallback(async (url: string) => {
     if (!userId) return;
@@ -75,5 +81,12 @@ export function useProfilePhoto() {
     }
   }, [userId]);
 
-  return { profilePhotoUrl, uploading, pickAndUpload, setFromUrl, reloadProfilePhoto: loadProfilePhoto };
+  return {
+    profilePhotoUrl,
+    uploading,
+    pickAndUpload,
+    setFromUrl,
+    reloadProfilePhoto: loadProfilePhoto,
+    photoPermissionDialog,
+  };
 }

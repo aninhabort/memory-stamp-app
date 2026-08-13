@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS, FONT_SIZES, RADIUS, SHADOW_PAPER } from '../constants/theme';
+import { COLORS, FONTS, RADIUS, SHADOW_PAPER } from '../constants/theme';
 
 export const PRESET_COLORS = [
   '#4A90D9', '#9B59B6', '#E74C3C',
@@ -98,7 +98,7 @@ export function ColorPicker({
 const styles = StyleSheet.create({
   sectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 9,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     marginBottom: 12,
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   customColorInput: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: FONT_SIZES.labelStamp,
+    fontSize: 16,
     color: COLORS.onSurface,
     textAlign: 'center',
     paddingVertical: 8,

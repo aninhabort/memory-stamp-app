@@ -4,8 +4,15 @@ import * as WebBrowser from 'expo-web-browser';
 import { supabase } from '../config/supabase';
 import { StorageService } from '../services/storage';
 import { CloudStorageService } from '../services/cloudStorage';
+import { ImageStorageService } from '../services/imageStorage';
+import { ConsentService } from '../services/consentService';
 
 const OAUTH_REDIRECT = 'memorystamp://auth';
+
+// 'checking'  — session just changed, consent status not resolved yet (show LoadingScreen)
+// 'required'  — authenticated but no current-version consent record exists (show ConsentGateScreen)
+// 'satisfied' — safe to render the main app
+export type ConsentStatus = 'checking' | 'required' | 'satisfied';
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -16,11 +23,14 @@ interface AuthContextType {
   userCreatedAt: string | null;
   hasAccount: boolean;
   linkedProviders: string[];
+  consentStatus: ConsentStatus;
   signup: (name: string, email: string, password: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   linkWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  confirmConsent: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
   const [hasAccount, setHasAccount] = useState(false);
   const [linkedProviders, setLinkedProviders] = useState<string[]>([]);
+  const [consentStatus, setConsentStatus] = useState<ConsentStatus>('checking');
 
   const applySession = async (session: Session | null) => {
     if (session?.user) {
@@ -50,6 +61,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserCreatedAt(session.user.created_at?.slice(0, 10) ?? null);
       setHasAccount(true);
       setLinkedProviders(session.user.identities?.map(i => i.provider) ?? []);
+      setConsentStatus('checking');
+
+      // Fast path: if this device just recorded a pending "I agree" intent
+      // (from SignUpScreen) for this account, persist it now that a session
+      // exists. Best-effort only — needsGate() below is the actual guarantee
+      // that every authenticated session has a current consent record,
+      // regardless of device, OAuth provider, or pre-existing account.
+      await ConsentService.reconcilePendingIntent(uid);
+      const needsGate = await ConsentService.needsGate(uid);
+      setConsentStatus(needsGate ? 'required' : 'satisfied');
 
       // Load user name: prefer local storage, fall back to OAuth metadata (Google etc.)
       try {
@@ -93,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserCreatedAt(null);
       setUserName(null);
       setLinkedProviders([]);
+      setConsentStatus('checking');
     }
   };
 
@@ -230,6 +252,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // State will be updated by onAuthStateChange listener
   };
 
+  // Called from ConsentGateScreen when the user accepts the current Terms/
+  // Privacy Policy version. Only reachable once already authenticated.
+  const confirmConsent = async () => {
+    if (!userId) throw new Error('Not authenticated');
+    await ConsentService.insertConsent(userId, 'gate');
+    setConsentStatus('satisfied');
+  };
+
+  // Permanently deletes the account and all associated data. Storage
+  // objects and the database rows are removed before the local cache is
+  // cleared and the session is signed out, so if any step throws, the user
+  // is still authenticated and can retry rather than being silently logged
+  // out with a half-deleted account.
+  const deleteAccount = async () => {
+    if (!userId) throw new Error('Not authenticated');
+    const uid = userId;
+
+    await ImageStorageService.deleteAllUserObjects(uid);
+
+    const { error } = await supabase.rpc('delete_own_account');
+    if (error) throw error;
+
+    await StorageService.clearAll(uid);
+    // Server-side user row is already gone, so a default-scope signOut's
+    // server-side revoke call could fail/404 — 'local' just clears the
+    // client session, which is all that's left to do.
+    await supabase.auth.signOut({ scope: 'local' });
+    // onAuthStateChange fires with session=null → applySession(null) →
+    // App.tsx falls back to Login/SignUp, same as a normal logout().
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -241,11 +294,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userCreatedAt,
         hasAccount,
         linkedProviders,
+        consentStatus,
         signup,
         login,
         loginWithGoogle,
         linkWithGoogle,
         logout,
+        confirmConsent,
+        deleteAccount,
       }}
     >
       {children}

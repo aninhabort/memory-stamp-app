@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   ScrollView,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +20,17 @@ import {
   FONT_SIZES,
   SPACING,
 } from '../constants/theme';
+import { ConsentCheckboxRow } from '../components/ConsentCheckboxRow';
+import { LegalDocumentViewer } from '../components/LegalDocumentViewer';
+import { TERMS_SECTIONS } from '../content/termsContent';
+import { PRIVACY_SECTIONS } from '../content/privacyContent';
+import {
+  CURRENT_TERMS_VERSION,
+  CURRENT_PRIVACY_VERSION,
+  TERMS_LAST_UPDATED,
+  PRIVACY_LAST_UPDATED,
+} from '../constants/legal';
+import { ConsentService } from '../services/consentService';
 
 interface SignUpScreenProps {
   onSignUp: (name: string, email: string, password: string) => void;
@@ -45,6 +57,8 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [visibleDoc, setVisibleDoc] = useState<'terms' | 'privacy' | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(28)).current;
 
@@ -96,13 +110,21 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
       return;
     }
 
+    if (!agreedToTerms) return;
+
+    // Captured before signup() runs — email confirmation can delay the
+    // session by an unknown amount, so this can't wait for a userId yet.
+    // AuthContext reconciles it into a real consent record the moment a
+    // session for this account first appears (see applySession).
+    ConsentService.recordIntent('signup_email');
     onSignUp(trimmedName, trimmedEmail, trimmedPassword);
   };
 
   const handleGoogleLogin = async () => {
-    if (!onGoogleLogin || loadingGoogle) return;
+    if (!onGoogleLogin || loadingGoogle || !agreedToTerms) return;
     setLoadingGoogle(true);
     try {
+      ConsentService.recordIntent('signup_google');
       await onGoogleLogin();
     } finally {
       setLoadingGoogle(false);
@@ -115,9 +137,10 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
   };
 
   const isFormValid =
-    name.trim() && email.trim() && password.trim() && confirmPassword.trim();
+    name.trim() && email.trim() && password.trim() && confirmPassword.trim() && agreedToTerms;
 
   return (
+    <>
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -133,7 +156,6 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
             <Ionicons name="book" size={32} color={COLORS.onPrimaryContainer} />
           </View>
           <Text style={styles.brandTitle}>MEMORY STAMP</Text>
-          <Text style={styles.institutionalHeader}>ARCHIVE AUTHORIZATION</Text>
           <Text style={styles.formTitle}>Open Your Archive</Text>
           <Text style={styles.formDescription}>Begin preserving your memories.</Text>
         </Animated.View>
@@ -231,6 +253,16 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
             </View>
           </View>
 
+          {/* Terms & Privacy consent — not an OS permission, just an in-app agreement */}
+          <View style={styles.consentRow}>
+            <ConsentCheckboxRow
+              checked={agreedToTerms}
+              onToggle={() => setAgreedToTerms(v => !v)}
+              onOpenTerms={() => setVisibleDoc('terms')}
+              onOpenPrivacy={() => setVisibleDoc('privacy')}
+            />
+          </View>
+
           {/* Primary action */}
           <TouchableOpacity
             style={[styles.submitBtn, !isFormValid && styles.submitBtnDisabled]}
@@ -251,10 +283,10 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
 
           {/* Google */}
           <TouchableOpacity
-            style={[styles.altBtn, loadingGoogle && { opacity: 0.5 }]}
+            style={[styles.altBtn, { marginBottom: 0 }, (loadingGoogle || !agreedToTerms) && { opacity: 0.5 }]}
             activeOpacity={0.75}
             onPress={handleGoogleLogin}
-            disabled={loadingGoogle}
+            disabled={loadingGoogle || !agreedToTerms}
           >
             <Ionicons name="logo-google" size={20} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
             <Text style={styles.altBtnText}>
@@ -262,38 +294,43 @@ export function SignUpScreen({ onSignUp, onNavigateToLogin, onGoogleLogin }: Sig
             </Text>
           </TouchableOpacity>
 
-          {/* Apple */}
-          <TouchableOpacity
-            style={[styles.altBtn, { marginBottom: 0 }]}
-            activeOpacity={0.75}
-            onPress={() => Alert.alert('Coming Soon', 'Apple authentication will be available soon.')}
-          >
-            <Ionicons name="logo-apple" size={20} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
-            <Text style={styles.altBtnText}>Continue with Apple</Text>
-          </TouchableOpacity>
-
           {/* Nav link */}
-          <View style={styles.navLinkRow}>
+          <View style={[styles.navLinkRow, { marginBottom: 0 }]}>
             <Text style={styles.navLinkText}>Already have a Passport? </Text>
             <TouchableOpacity onPress={onNavigateToLogin} activeOpacity={0.7}>
               <Text style={styles.navLink}>Access Archive</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Card institutional seal */}
-          <View style={styles.cardSeal}>
-            <View style={styles.cardSealRule} />
-            <Text style={styles.cardSealText}>ARCHIVAL RECORD · MEMORY STAMP AUTHORIZATION</Text>
-          </View>
-
-        </Animated.View>
-
-        {/* Screen footer */}
-        <Animated.View style={[styles.screenFooter, animStyle]}>
-          <Text style={styles.screenFooterText}>Memory Stamp Archival System · Revision 1.0</Text>
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
+
+    <Modal
+      visible={visibleDoc !== null}
+      animationType="slide"
+      onRequestClose={() => setVisibleDoc(null)}
+    >
+      {visibleDoc === 'terms' && (
+        <LegalDocumentViewer
+          title="Terms of Use"
+          version={CURRENT_TERMS_VERSION}
+          lastUpdated={TERMS_LAST_UPDATED}
+          sections={TERMS_SECTIONS}
+          onBack={() => setVisibleDoc(null)}
+        />
+      )}
+      {visibleDoc === 'privacy' && (
+        <LegalDocumentViewer
+          title="Privacy Policy"
+          version={CURRENT_PRIVACY_VERSION}
+          lastUpdated={PRIVACY_LAST_UPDATED}
+          sections={PRIVACY_SECTIONS}
+          onBack={() => setVisibleDoc(null)}
+        />
+      )}
+    </Modal>
+    </>
   );
 }
 
@@ -331,15 +368,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     color: COLORS.primary,
     letterSpacing: 3,
-    marginBottom: 6,
-  },
-  institutionalHeader: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 8,
-    color: COLORS.onSurfaceVariant,
-    letterSpacing: 2,
-    opacity: 0.38,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   formTitle: {
     fontFamily: FONTS.headlineMd,
@@ -393,6 +422,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.onSurface,
     padding: 0,
+  },
+
+  // ── Terms & Privacy consent ──
+  consentRow: {
+    marginTop: 4,
+    marginBottom: 16,
   },
 
   // ── Primary button ──
@@ -479,37 +514,4 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  // ── Card institutional seal ──
-  cardSeal: {
-    alignItems: 'center',
-  },
-  cardSealRule: {
-    height: 1,
-    alignSelf: 'stretch',
-    backgroundColor: COLORS.outlineVariant,
-    opacity: 0.28,
-    marginBottom: 8,
-  },
-  cardSealText: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 7,
-    color: COLORS.onSurface,
-    letterSpacing: 2,
-    opacity: 0.2,
-    textAlign: 'center',
-  },
-
-  // ── Screen footer ──
-  screenFooter: {
-    alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  screenFooterText: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 8,
-    color: COLORS.onSurfaceVariant,
-    letterSpacing: 1,
-    opacity: 0.32,
-  },
 });

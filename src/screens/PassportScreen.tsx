@@ -555,10 +555,10 @@ const styles = StyleSheet.create({
   },
   archivesMeta: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5,
-    opacity: 0.55,
+    letterSpacing: 1.2,
+    opacity: 0.7,
   },
 
   // Volume shelf
@@ -574,12 +574,12 @@ const styles = StyleSheet.create({
   // Shelf instruction — fine print, guidance only, not a headline
   shelfHint: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 11,
+    fontSize: 14,
     color: COLORS.onSurfaceVariant,
     textAlign: 'center',
-    opacity: 0.28,
+    opacity: 0.55,
     marginBottom: 8,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   // Grows to fill remaining space so archiveFooter pins to the bottom
   shelfSpacer: {
@@ -601,10 +601,10 @@ const styles = StyleSheet.create({
   },
   archiveFooterText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5,
-    opacity: 0.35,
+    letterSpacing: 1.2,
+    opacity: 0.4,
     textAlign: 'center',
   },
 
@@ -639,10 +639,10 @@ const styles = StyleSheet.create({
   },
   addAuthorityLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: cpx(7),
+    fontSize: 12,
     color: VOLUME_INK,
     letterSpacing: 1.5,
-    opacity: 0.18,
+    opacity: 0.3,
     textAlign: 'center',
   },
   // Globe circle — dashed border signals the document is pending issuance
@@ -663,18 +663,18 @@ const styles = StyleSheet.create({
   },
   addVolumeFooterText: {
     fontFamily: FONTS.headlineSm,
-    fontSize: cpx(11),
+    fontSize: 15,
     color: VOLUME_INK,
-    letterSpacing: 0.5,
-    opacity: 0.38,
+    letterSpacing: 0.4,
+    opacity: 0.45,
   },
   // Sole state indicator for the unissued card — typography only, no badge
   addVolumeFooterSub: {
     fontFamily: FONTS.labelStamp,
-    fontSize: cpx(7),
+    fontSize: 12,
     color: VOLUME_INK,
-    letterSpacing: 1.5,
-    opacity: 0.32,
+    letterSpacing: 1.2,
+    opacity: 0.4,
   },
 
   // ── Open state ──────────────────────────────────────────────────────────────
@@ -696,6 +696,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 2,
     minWidth: 72,
+    paddingVertical: 12,
   },
   closeBtnText: {
     fontFamily: FONTS.labelCaps,
@@ -718,9 +719,9 @@ const styles = StyleSheet.create({
   },
   openCounter: {
     fontFamily: FONTS.labelStamp,
-    fontSize: FONT_SIZES.labelXs,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
-    opacity: 0.65,
+    opacity: 0.7,
     minWidth: 72,
     textAlign: 'right',
   },
@@ -753,25 +754,25 @@ const styles = StyleSheet.create({
   },
   compactLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 8,
+    fontSize: 12,
     color: COLORS.onPrimaryContainer,
-    letterSpacing: 2,
-    opacity: 0.7,
+    letterSpacing: 1.5,
+    opacity: 0.75,
     marginBottom: 1,
   },
   compactName: {
     fontFamily: FONTS.headlineSm,
-    fontSize: 20,
+    fontSize: 21,
     color: VOLUME_INK,
-    lineHeight: 24,
+    lineHeight: 25,
   },
   // Volume name — secondary context below the traveller's name
   compactVolumeName: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 12,
+    fontSize: 15,
     color: VOLUME_INK,
-    opacity: 0.5,
-    letterSpacing: 0.5,
+    opacity: 0.65,
+    letterSpacing: 0.3,
   },
   // Entry count as a structured document field: number + label stacked
   compactCountBlock: {
@@ -788,10 +789,10 @@ const styles = StyleSheet.create({
   },
   compactCountLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 8,
+    fontSize: 12,
     color: COLORS.onPrimaryContainer,
-    letterSpacing: 2,
-    opacity: 0.5,
+    letterSpacing: 1.5,
+    opacity: 0.65,
   },
 
   // Empty state (volume with no stamps)
@@ -851,8 +852,8 @@ const styles = StyleSheet.create({
   },
   fabLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 12,
+    fontSize: 15,
     color: COLORS.white,
-    letterSpacing: 2.5,
+    letterSpacing: 1.8,
   },
 });

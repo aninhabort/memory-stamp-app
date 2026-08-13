@@ -25,6 +25,8 @@ import { formatDecoDate } from '../utils/stampUtils';
 import { PhotoSelector } from './PhotoSelector';
 import { CategoryPicker } from './CategoryPicker';
 import { ColorPicker, PRESET_COLORS } from './ColorPicker';
+import { usePhotoPermission } from '../hooks/usePhotoPermission';
+import { useCameraPermission } from '../hooks/useCameraPermission';
 
 const ICONS: React.ComponentProps<typeof Ionicons>['name'][] = [
   'globe-outline',          'musical-notes-outline', 'wine-outline',          'happy-outline',
@@ -95,6 +97,9 @@ export function StampForm({
   const sealScale      = useRef(new Animated.Value(0.85)).current;
   const [showSeal, setShowSeal] = useState(false);
 
+  const { requestAccess: requestPhotoAccess, PermissionDialog: PhotoPermissionDialog } = usePhotoPermission();
+  const { requestAccess: requestCameraAccess, PermissionDialog: CameraPermissionDialog } = useCameraPermission();
+
   const resetForm = () => {
     setTitle(''); setPlace(''); setCountry('');
     setDate(todayISO); setNote('');
@@ -106,15 +111,7 @@ export function StampForm({
     setCustomEmoji(''); setIsCustomEmojiMode(false);
   };
 
-  const pickPhoto = async (source: 'camera' | 'gallery') => {
-    if (photos.length >= 6) return;
-    const permResult = source === 'camera'
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permResult.granted) {
-      Alert.alert('Permission required', 'Please enable access in device Settings.');
-      return;
-    }
+  const launchPicker = async (source: 'camera' | 'gallery') => {
     const opts: ImagePicker.ImagePickerOptions = {
       mediaTypes: 'images',
       allowsEditing: true,
@@ -126,6 +123,18 @@ export function StampForm({
       : await ImagePicker.launchImageLibraryAsync(opts);
     if (!result.canceled && result.assets[0]) {
       setPhotos(prev => [...prev, result.assets[0].uri]);
+    }
+  };
+
+  // Permission is requested here — lazily, only once the user has already
+  // chosen "Camera" or "Gallery" from the action sheet below — never on
+  // mount and never before this point.
+  const pickPhoto = (source: 'camera' | 'gallery') => {
+    if (photos.length >= 6) return;
+    if (source === 'camera') {
+      requestCameraAccess(() => launchPicker('camera'));
+    } else {
+      requestPhotoAccess(() => launchPicker('gallery'));
     }
   };
 
@@ -256,7 +265,7 @@ export function StampForm({
               value={place}
               onChangeText={setPlace}
             />
-            <Ionicons name="location-outline" size={20} color={COLORS.outline} />
+            <Ionicons name="location-outline" size={21} color={COLORS.outline} />
           </View>
         </View>
 
@@ -270,7 +279,7 @@ export function StampForm({
               value={country}
               onChangeText={setCountry}
             />
-            <Ionicons name="globe-outline" size={20} color={COLORS.outline} />
+            <Ionicons name="globe-outline" size={21} color={COLORS.outline} />
           </View>
         </View>
 
@@ -286,7 +295,7 @@ export function StampForm({
               keyboardType="numbers-and-punctuation"
               maxLength={10}
             />
-            <Ionicons name="calendar-outline" size={20} color={COLORS.outline} />
+            <Ionicons name="calendar-outline" size={21} color={COLORS.outline} />
           </View>
         </View>
 
@@ -305,7 +314,7 @@ export function StampForm({
             />
             <Ionicons
               name="document-text-outline"
-              size={20}
+              size={21}
               color={COLORS.outline}
               style={styles.noteIcon}
             />
@@ -471,6 +480,9 @@ export function StampForm({
           },
         ]}
       />
+
+      {PhotoPermissionDialog}
+      {CameraPermissionDialog}
     </>
   );
 }
@@ -512,9 +524,9 @@ const styles = StyleSheet.create({
   },
   entryRef: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.onSurfaceVariant,
-    opacity: 0.55,
+    opacity: 0.6,
     letterSpacing: 1,
   },
   cardDivider: {
@@ -525,7 +537,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
     letterSpacing: 1.5,
     marginBottom: 12,
@@ -551,7 +563,7 @@ const styles = StyleSheet.create({
   },
   fieldInputLarge: {
     fontFamily: FONTS.headlineSm,
-    fontSize: FONT_SIZES.bodyLg,
+    fontSize: 17,
     color: COLORS.onSurface,
     paddingVertical: 9,
     paddingRight: 4,
@@ -559,7 +571,7 @@ const styles = StyleSheet.create({
   },
   fieldInputMono: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 16,
+    fontSize: 17,
     color: COLORS.onSurface,
     paddingVertical: 9,
     paddingRight: 4,
@@ -641,17 +653,17 @@ const styles = StyleSheet.create({
   },
   certLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 2,
-    opacity: 0.6,
+    letterSpacing: 1.8,
+    opacity: 0.65,
   },
   certSub: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 7,
+    fontSize: 10,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5,
-    opacity: 0.35,
+    letterSpacing: 1.2,
+    opacity: 0.4,
   },
 
   // ── Stamp action area ─────────────────────────────────────────────────────────
@@ -663,10 +675,10 @@ const styles = StyleSheet.create({
   },
   pressHint: {
     fontFamily: FONTS.labelStampRegular,
-    fontSize: 11,
+    fontSize: 13,
     color: COLORS.outline,
     fontStyle: 'italic',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   stampBtn: {
     width: 128,
@@ -698,19 +710,19 @@ const styles = StyleSheet.create({
   },
   stampBtnLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 13,
+    fontSize: 15,
     color: COLORS.white,
-    letterSpacing: 2.5,
+    letterSpacing: 2,
   },
   stampBtnSublabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 10,
+    fontSize: 11,
     color: COLORS.white,
-    opacity: 0.65,
-    letterSpacing: 2,
+    opacity: 0.7,
+    letterSpacing: 1.5,
   },
   discardBtn: {
-    paddingVertical: 4,
+    paddingVertical: 12,
   },
   discardLink: {
     fontFamily: FONTS.labelCaps,
@@ -751,17 +763,17 @@ const styles = StyleSheet.create({
   },
   sealSub: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 11,
     color: COLORS.secondary,
-    letterSpacing: 3,
+    letterSpacing: 2.5,
     opacity: 0.8,
   },
   sealDept: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 7,
+    fontSize: 10,
     color: COLORS.secondary,
-    letterSpacing: 2,
-    opacity: 0.5,
+    letterSpacing: 1.5,
+    opacity: 0.55,
     marginTop: 2,
   },
 });

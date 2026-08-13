@@ -186,7 +186,7 @@ export function SearchScreen() {
 
       {/* ── Catalog search bar — ledger underline style ─────────────── */}
       <View style={styles.searchBar}>
-        <Ionicons name="search-outline" size={18} color={COLORS.outline} />
+        <Ionicons name="search-outline" size={21} color={COLORS.outline} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search the archive..."
@@ -199,9 +199,9 @@ export function SearchScreen() {
         {query.length > 0 && (
           <TouchableOpacity
             onPress={() => setQuery('')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons name="close-circle" size={16} color={COLORS.outline} />
+            <Ionicons name="close-circle" size={20} color={COLORS.outline} />
           </TouchableOpacity>
         )}
       </View>
@@ -336,10 +336,10 @@ const styles = StyleSheet.create({
   },
   archivesMeta: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5,
-    opacity: 0.55,
+    letterSpacing: 1.2,
+    opacity: 0.7,
   },
 
   // ── Catalog search bar — ledger underline, no border box ──
@@ -368,10 +368,10 @@ const styles = StyleSheet.create({
   },
   filterSectionLabel: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 2,
-    opacity: 0.7,
+    letterSpacing: 1.5,
+    opacity: 0.75,
     paddingHorizontal: SPACING.pageMargin,
     marginBottom: 8,
   },
@@ -385,7 +385,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.outlineVariant,
     borderRadius: 3,
     paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingVertical: 8,
   },
   filterChipActive: {
     backgroundColor: COLORS.primary,
@@ -393,9 +393,9 @@ const styles = StyleSheet.create({
   },
   filterChipText: {
     fontFamily: FONTS.labelCaps,
-    fontSize: 14,
+    fontSize: 15,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
   filterChipTextActive: {
     color: COLORS.onPrimary,
@@ -420,10 +420,10 @@ const styles = StyleSheet.create({
   },
   resultsHeaderText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 9,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 2,
-    opacity: 0.65,
+    letterSpacing: 1.5,
+    opacity: 0.7,
   },
 
   // Each result — reads like a library catalog card entry
@@ -536,10 +536,10 @@ const styles = StyleSheet.create({
   // No results — formal archival response
   noResultsTitle: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 11,
+    fontSize: 12,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 3,
-    opacity: 0.65,
+    letterSpacing: 2,
+    opacity: 0.7,
     marginTop: 8,
   },
   noResultsHint: {

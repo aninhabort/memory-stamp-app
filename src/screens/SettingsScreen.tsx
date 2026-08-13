@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -13,17 +13,18 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useUserName } from '../hooks/useUserName';
 import { useProfilePhoto } from '../hooks/useProfilePhoto';
 import { useStamps } from '../hooks/useStamps';
 import { useAuth } from '../contexts/AuthContext';
 import { formatArrivalDate } from '../utils/stampUtils';
+import { AppDialog } from '../components/AppDialog';
+import { PermissionsService, PermissionUIStatus } from '../services/permissions';
 import {
   COLORS,
   FONTS,
   FONT_SIZES,
-  RADIUS,
   SPACING,
 } from '../constants/theme';
 import { SettingsStackParamList } from '../navigation/types';
@@ -46,12 +47,27 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { userName, setUserName } = useUserName();
   const { stamps } = useStamps();
-  const { logout, userId, userCreatedAt, linkedProviders, linkWithGoogle } = useAuth();
+  const { logout, userId, userCreatedAt, linkedProviders, linkWithGoogle, deleteAccount } = useAuth();
   const [linkingGoogle, setLinkingGoogle] = useState(false);
 
-  const { profilePhotoUrl, uploading, pickAndUpload } = useProfilePhoto();
+  const { profilePhotoUrl, uploading, pickAndUpload, photoPermissionDialog } = useProfilePhoto();
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(userName || '');
+
+  // Read-only permission status for display — never requested from here,
+  // only ever from the exact feature that needs it (Add Photo / Take Photo).
+  const [photoStatus, setPhotoStatus] = useState<PermissionUIStatus | null>(null);
+  const [cameraStatus, setCameraStatus] = useState<PermissionUIStatus | null>(null);
+  useFocusEffect(
+    useCallback(() => {
+      PermissionsService.getPhotoLibraryStatus().then(setPhotoStatus);
+      PermissionsService.getCameraStatus().then(setCameraStatus);
+    }, []),
+  );
+
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [deleteFinalVisible, setDeleteFinalVisible] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const archiveRef = useMemo(() => {
     if (!userId) return 'MSA-PENDING';
@@ -138,6 +154,27 @@ export function SettingsScreen() {
     );
   };
 
+  // Two-step confirmation, per the app's existing AppDialog pattern —
+  // consequences first, then a separate destructive confirm. A single tap
+  // never deletes anything.
+  const handleDeleteAccount = () => setDeleteConfirmVisible(true);
+
+  const handleConfirmDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      // onAuthStateChange fires with session=null → App.tsx returns to
+      // Login/SignUp automatically, same as logout().
+    } catch (error) {
+      Alert.alert(
+        'Could Not Delete Account',
+        'Something went wrong and your account was not deleted. Please check your connection and try again.',
+      );
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       {/* Header */}
@@ -203,8 +240,8 @@ export function SettingsScreen() {
                     returnKeyType="done"
                     onSubmitEditing={handleSaveName}
                   />
-                  <TouchableOpacity onPress={handleSaveName}>
-                    <Ionicons name="checkmark" size={16} color={COLORS.secondary} />
+                  <TouchableOpacity onPress={handleSaveName} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                    <Ionicons name="checkmark" size={18} color={COLORS.secondary} />
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -212,9 +249,10 @@ export function SettingsScreen() {
                   style={styles.identityNameRow}
                   onPress={() => setEditingName(true)}
                   activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 0, right: 8 }}
                 >
                   <Text style={styles.identityName}>{userName || 'Archivist'}</Text>
-                  <Ionicons name="pencil-outline" size={11} color={COLORS.outline} style={{ opacity: 0.45 }} />
+                  <Ionicons name="pencil-outline" size={13} color={COLORS.outline} style={{ opacity: 0.5 }} />
                 </TouchableOpacity>
               )}
             </View>
@@ -256,14 +294,14 @@ export function SettingsScreen() {
               disabled={linkedProviders.includes('google') || linkingGoogle}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="logo-google" size={20} color={COLORS.onSurface} />
+                <Ionicons name="logo-google" size={21} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Google</Text>
               </View>
               {linkingGoogle ? (
                 <ActivityIndicator size="small" color={COLORS.primary} />
               ) : linkedProviders.includes('google') ? (
                 <View style={styles.connectedBadge}>
-                  <Ionicons name="checkmark" size={9} color={COLORS.secondary} />
+                  <Ionicons name="checkmark" size={11} color={COLORS.secondary} />
                   <Text style={styles.connectedText}>LINKED</Text>
                 </View>
               ) : (
@@ -275,7 +313,7 @@ export function SettingsScreen() {
 
             <View style={[styles.settingRow, { opacity: 0.4 }]}>
               <View style={styles.settingLeft}>
-                <Ionicons name="logo-apple" size={20} color={COLORS.onSurface} />
+                <Ionicons name="logo-apple" size={21} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Apple</Text>
                 <View style={styles.comingSoonBadge}>
                   <Text style={styles.comingSoonText}>PLANNED</Text>
@@ -295,13 +333,13 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="download-outline" size={20} color={COLORS.onSurface} />
+                <Ionicons name="download-outline" size={21} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Export Data</Text>
                 <View style={styles.comingSoonBadge}>
                   <Text style={styles.comingSoonText}>PLANNED</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
+              <Ionicons name="chevron-forward" size={18} color={COLORS.outline} />
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -312,7 +350,7 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="trash-outline" size={20} color="#c44e3f" />
+                <Ionicons name="trash-outline" size={21} color="#c44e3f" />
                 <Text style={[styles.settingLabel, { color: COLORS.error }]}>
                   Clear All Data
                 </Text>
@@ -320,8 +358,103 @@ export function SettingsScreen() {
                   <Text style={styles.comingSoonText}>PLANNED</Text>
                 </View>
               </View>
-              <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
+              <Ionicons name="chevron-forward" size={18} color={COLORS.outline} />
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ── Privacy & Legal ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>PRIVACY & LEGAL</Text>
+          <View style={styles.settingCard}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleTermsOfUse}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="document-text-outline" size={21} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Terms of Service</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handlePrivacyPolicy}
+              activeOpacity={0.7}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="shield-outline" size={21} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Privacy Policy</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            {/* Photo/Camera access are read-only status displays — the app
+                never requests these permissions from here, only from the
+                exact feature that needs them (Add Photo / Take Photo). */}
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="images-outline" size={21} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Photo Access</Text>
+              </View>
+              <View style={styles.permissionStatusBlock}>
+                <Text style={styles.permissionStatusText}>
+                  {photoStatus ? PermissionsService.statusLabel(photoStatus) : '—'}
+                </Text>
+                {(photoStatus === 'denied' || photoStatus === 'blocked') && (
+                  <TouchableOpacity
+                    onPress={() => PermissionsService.openSettings()}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.permissionSettingsLink}>Open Settings</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.settingRow}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="camera-outline" size={21} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Camera Access</Text>
+              </View>
+              <View style={styles.permissionStatusBlock}>
+                <Text style={styles.permissionStatusText}>
+                  {cameraStatus ? PermissionsService.statusLabel(cameraStatus) : '—'}
+                </Text>
+                {(cameraStatus === 'denied' || cameraStatus === 'blocked') && (
+                  <TouchableOpacity
+                    onPress={() => PermissionsService.openSettings()}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={styles.permissionSettingsLink}>Open Settings</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            <View style={styles.divider} />
+
+            {/* No reminder/notification feature exists in the app yet — this
+                is a placeholder row. Once one is built, it should request
+                notification permission lazily (only when the user turns on
+                a reminder), following the same pattern as usePhotoPermission. */}
+            <View style={[styles.settingRow, { opacity: 0.4 }]}>
+              <View style={styles.settingLeft}>
+                <Ionicons name="notifications-outline" size={21} color={COLORS.onSurface} />
+                <Text style={styles.settingLabel}>Notification Settings</Text>
+                <View style={styles.comingSoonBadge}>
+                  <Text style={styles.comingSoonText}>PLANNED</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
 
@@ -335,10 +468,10 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="mail-outline" size={20} color={COLORS.onSurface} />
+                <Ionicons name="mail-outline" size={21} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Contact Support</Text>
               </View>
-              <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
+              <Ionicons name="chevron-forward" size={18} color={COLORS.outline} />
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -349,38 +482,10 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="help-circle-outline" size={20} color={COLORS.onSurface} />
+                <Ionicons name="help-circle-outline" size={21} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>FAQ</Text>
               </View>
-              <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity
-              style={styles.settingRow}
-              onPress={handlePrivacyPolicy}
-              activeOpacity={0.7}
-            >
-              <View style={styles.settingLeft}>
-                <Ionicons name="shield-outline" size={20} color={COLORS.onSurface} />
-                <Text style={styles.settingLabel}>Privacy Policy</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
-            </TouchableOpacity>
-
-            <View style={styles.divider} />
-
-            <TouchableOpacity
-              style={styles.settingRow}
-              onPress={handleTermsOfUse}
-              activeOpacity={0.7}
-            >
-              <View style={styles.settingLeft}>
-                <Ionicons name="document-text-outline" size={20} color={COLORS.onSurface} />
-                <Text style={styles.settingLabel}>Terms of Use</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
+              <Ionicons name="chevron-forward" size={18} color={COLORS.outline} />
             </TouchableOpacity>
           </View>
         </View>
@@ -391,7 +496,7 @@ export function SettingsScreen() {
           <View style={styles.settingCard}>
             <View style={styles.settingRow}>
               <View style={styles.settingLeft}>
-                <Ionicons name="information-circle-outline" size={20} color={COLORS.onSurface} />
+                <Ionicons name="information-circle-outline" size={21} color={COLORS.onSurface} />
                 <Text style={styles.settingLabel}>Archive Revision</Text>
               </View>
               <Text style={styles.settingValue}>1.0.0</Text>
@@ -409,12 +514,33 @@ export function SettingsScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="log-out-outline" size={20} color="#c44e3f" />
+                <Ionicons name="log-out-outline" size={21} color="#c44e3f" />
                 <Text style={[styles.settingLabel, { color: COLORS.error }]}>
                   Leave Archive
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={14} color={COLORS.outline} />
+              <Ionicons name="chevron-forward" size={18} color={COLORS.outline} />
+            </TouchableOpacity>
+
+            <View style={styles.divider} />
+
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={handleDeleteAccount}
+              activeOpacity={0.7}
+              disabled={deleting}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="trash-outline" size={21} color="#c44e3f" />
+                <Text style={[styles.settingLabel, { color: COLORS.error }]}>
+                  Delete Account
+                </Text>
+              </View>
+              {deleting ? (
+                <ActivityIndicator size="small" color={COLORS.error} />
+              ) : (
+                <Ionicons name="chevron-forward" size={18} color={COLORS.outline} />
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -427,6 +553,42 @@ export function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Step 1: explain consequences */}
+      <AppDialog
+        visible={deleteConfirmVisible}
+        onClose={() => setDeleteConfirmVisible(false)}
+        label="DELETE ACCOUNT"
+        title="Delete your account?"
+        message="This permanently deletes your account and all stamps, photos, and data. This cannot be undone."
+        actions={[
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Continue',
+            style: 'destructive',
+            onPress: () => setDeleteFinalVisible(true),
+          },
+        ]}
+      />
+
+      {/* Step 2: final destructive confirmation */}
+      <AppDialog
+        visible={deleteFinalVisible}
+        onClose={() => setDeleteFinalVisible(false)}
+        label="LAST CHANCE"
+        title="Delete My Account"
+        message="Every stamp, photo, and volume in your archive will be permanently erased."
+        actions={[
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete My Account',
+            style: 'destructive',
+            onPress: handleConfirmDelete,
+          },
+        ]}
+      />
+
+      {photoPermissionDialog}
     </View>
   );
 }
@@ -450,6 +612,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     minWidth: 72,
+    paddingVertical: 12,
   },
   backText: {
     fontFamily: FONTS.labelCaps,
@@ -467,14 +630,6 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     textAlign: 'center',
     letterSpacing: 1,
-  },
-  headerSubtitle: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 8,
-    color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5,
-    opacity: 0.55,
-    marginTop: 2,
   },
   headerRight: {
     minWidth: 72,
@@ -548,10 +703,10 @@ const styles = StyleSheet.create({
   },
   photoLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 7,
+    fontSize: 12,
     color: COLORS.onSurface,
-    letterSpacing: 2,
-    opacity: 0.35,
+    letterSpacing: 1.5,
+    opacity: 0.55,
   },
   photoHint: {
     fontFamily: FONTS.bodyMd,
@@ -564,27 +719,28 @@ const styles = StyleSheet.create({
   },
   identityFieldLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 7,
+    fontSize: 12,
     color: COLORS.onSurface,
-    letterSpacing: 2,
-    opacity: 0.35,
+    letterSpacing: 1.5,
+    opacity: 0.55,
   },
   identityNameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    paddingVertical: 6,
   },
   identityName: {
     fontFamily: FONTS.headlineSm,
-    fontSize: 16,
+    fontSize: 17,
     color: COLORS.onSurface,
     letterSpacing: 0.3,
   },
   identityCode: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 13,
+    fontSize: 14,
     color: COLORS.onSurface,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     opacity: 0.8,
   },
   identityTwoCol: {
@@ -604,10 +760,10 @@ const styles = StyleSheet.create({
   },
   identityMeta: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.onSurface,
-    letterSpacing: 1,
-    opacity: 0.7,
+    letterSpacing: 0.8,
+    opacity: 0.75,
   },
   identityDivider: {
     height: 1,
@@ -627,7 +783,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: 40,
+    minHeight: 44,
   },
   settingLeft: {
     flexDirection: 'row',
@@ -649,6 +805,21 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.bodyMd,
     fontSize: FONT_SIZES.bodyMd,
     color: COLORS.onSurfaceVariant,
+  },
+  permissionStatusBlock: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  permissionStatusText: {
+    fontFamily: FONTS.bodyMd,
+    fontSize: 14,
+    color: COLORS.onSurfaceVariant,
+  },
+  permissionSettingsLink: {
+    fontFamily: FONTS.bodyMd,
+    fontSize: 13,
+    color: COLORS.secondary,
+    textDecorationLine: 'underline',
   },
   editNameRow: {
     flexDirection: 'row',
@@ -685,13 +856,13 @@ const styles = StyleSheet.create({
   },
   connectedText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 7,
+    fontSize: 11,
     color: COLORS.secondary,
-    letterSpacing: 1.5,
+    letterSpacing: 1,
   },
   connectText: {
     fontFamily: FONTS.bodyMd,
-    fontSize: 12,
+    fontSize: 14,
     color: COLORS.primary,
     opacity: 0.85,
   },
@@ -707,10 +878,10 @@ const styles = StyleSheet.create({
   },
   comingSoonText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 6,
+    fontSize: 10,
     color: COLORS.onSurfaceVariant,
-    letterSpacing: 1.5,
-    opacity: 0.55,
+    letterSpacing: 1,
+    opacity: 0.6,
   },
 
   // ── Footer — almost-erased institutional stamp ──

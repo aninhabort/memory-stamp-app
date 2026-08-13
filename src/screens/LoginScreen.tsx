@@ -106,7 +106,6 @@ export function LoginScreen({ onLogin, onNavigateToSignUp, onGoogleLogin }: Logi
             <Ionicons name="book" size={32} color={COLORS.onPrimaryContainer} />
           </View>
           <Text style={styles.brandTitle}>MEMORY STAMP</Text>
-          <Text style={styles.institutionalHeader}>ARCHIVE AUTHORIZATION</Text>
           <Text style={styles.formTitle}>Welcome Back</Text>
           <Text style={styles.formDescription}>Access your personal archive.</Text>
         </Animated.View>
@@ -186,7 +185,7 @@ export function LoginScreen({ onLogin, onNavigateToSignUp, onGoogleLogin }: Logi
 
           {/* Google */}
           <TouchableOpacity
-            style={[styles.altBtn, loadingGoogle && { opacity: 0.5 }]}
+            style={[styles.altBtn, { marginBottom: 0 }, loadingGoogle && { opacity: 0.5 }]}
             activeOpacity={0.75}
             onPress={handleGoogleLogin}
             disabled={loadingGoogle}
@@ -197,35 +196,14 @@ export function LoginScreen({ onLogin, onNavigateToSignUp, onGoogleLogin }: Logi
             </Text>
           </TouchableOpacity>
 
-          {/* Apple */}
-          <TouchableOpacity
-            style={[styles.altBtn, { marginBottom: 0 }]}
-            activeOpacity={0.75}
-            onPress={() => Alert.alert('Coming Soon', 'Apple authentication will be available soon.')}
-          >
-            <Ionicons name="logo-apple" size={20} color={COLORS.onSurface} style={{ opacity: 0.45 }} />
-            <Text style={styles.altBtnText}>Continue with Apple</Text>
-          </TouchableOpacity>
-
           {/* Nav link */}
-          <View style={styles.navLinkRow}>
+          <View style={[styles.navLinkRow, { marginBottom: 0 }]}>
             <Text style={styles.navLinkText}>No Passport yet? </Text>
             <TouchableOpacity onPress={onNavigateToSignUp} activeOpacity={0.7}>
               <Text style={styles.navLink}>Open Your Archive</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Card institutional seal */}
-          <View style={styles.cardSeal}>
-            <View style={styles.cardSealRule} />
-            <Text style={styles.cardSealText}>ARCHIVE VERIFIED · MEMORY STAMP AUTHORIZATION</Text>
-          </View>
-
-        </Animated.View>
-
-        {/* Screen footer */}
-        <Animated.View style={[styles.screenFooter, animStyle]}>
-          <Text style={styles.screenFooterText}>Memory Stamp Archival System · Revision 1.0</Text>
         </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -266,15 +244,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     color: COLORS.primary,
     letterSpacing: 3,
-    marginBottom: 6,
-  },
-  institutionalHeader: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 8,
-    color: COLORS.onSurfaceVariant,
-    letterSpacing: 2,
-    opacity: 0.38,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   formTitle: {
     fontFamily: FONTS.headlineMd,
@@ -425,37 +395,4 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  // ── Card institutional seal ──
-  cardSeal: {
-    alignItems: 'center',
-  },
-  cardSealRule: {
-    height: 1,
-    alignSelf: 'stretch',
-    backgroundColor: COLORS.outlineVariant,
-    opacity: 0.28,
-    marginBottom: 8,
-  },
-  cardSealText: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 7,
-    color: COLORS.onSurface,
-    letterSpacing: 2,
-    opacity: 0.2,
-    textAlign: 'center',
-  },
-
-  // ── Screen footer ──
-  screenFooter: {
-    alignItems: 'center',
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  screenFooterText: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 8,
-    color: COLORS.onSurfaceVariant,
-    letterSpacing: 1,
-    opacity: 0.32,
-  },
 });

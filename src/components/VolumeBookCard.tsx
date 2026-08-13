@@ -93,12 +93,11 @@ export function VolumeBookCard({
           <View style={styles.bookTop}>
             <Text style={styles.authorityLabel}>MEMORY STAMP ARCHIVE</Text>
             <Text style={styles.volumeLabel}>{volume.volumeLabel}</Text>
+            {/* Active record annotation — printed text, no border, flows below the volume number so it never overlaps */}
+            {isCurrent && (
+              <Text style={styles.currentLabel}>ACTIVE RECORD</Text>
+            )}
           </View>
-
-          {/* ── Active record annotation — printed text, no border ── */}
-          {isCurrent && (
-            <Text style={styles.currentLabel}>ACTIVE RECORD</Text>
-          )}
 
           {/* ── Central globe seal ── */}
           <View style={styles.globeCircle}>
@@ -127,7 +126,7 @@ export function VolumeBookCard({
 
       {onDelete && (
         <View style={styles.deleteHint}>
-          <Ionicons name="chevron-up" size={10} color={COLORS.onSurface} style={styles.deleteHintIcon} />
+          <Ionicons name="chevron-up" size={12} color={COLORS.onSurface} style={styles.deleteHintIcon} />
           <Text style={styles.deleteHintText}>DELETE</Text>
         </View>
       )}
@@ -143,17 +142,17 @@ const styles = StyleSheet.create({
   deleteHint: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    opacity: 0.18,
+    gap: 4,
+    opacity: 0.4,
   },
   deleteHintIcon: {
     opacity: 1,
   },
   deleteHintText: {
     fontFamily: FONTS.labelStamp,
-    fontSize: 7,
+    fontSize: 12,
     color: COLORS.onSurface,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
 
   // Passport cover — left spine, layered shadow for physical depth
@@ -190,18 +189,18 @@ const styles = StyleSheet.create({
   // Issuing authority — printed very faint, like pre-press text on passport covers
   authorityLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(9),
+    fontSize: 12,
     color: VOLUME_INK,
     letterSpacing: 1.5,
-    opacity: 0.3,
+    opacity: 0.4,
     textAlign: 'center',
   },
   volumeLabel: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(12),
+    fontSize: 19,
     color: VOLUME_INK,
-    letterSpacing: 4,
-    opacity: 0.85,
+    letterSpacing: 3,
+    opacity: 0.9,
   },
 
   // ── Globe seal ──
@@ -224,18 +223,18 @@ const styles = StyleSheet.create({
   // Holder name — uppercase, the most prominent footer field
   holderName: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(12),
+    fontSize: 17,
     color: VOLUME_INK,
-    letterSpacing: 1.5,
-    opacity: 0.9,
+    letterSpacing: 1.2,
+    opacity: 0.92,
   },
   // Volume name — secondary, slightly receded
   bookFooterTitle: {
     fontFamily: FONTS.headlineSm,
-    fontSize: px(13),
+    fontSize: 19,
     color: VOLUME_INK,
-    letterSpacing: 0.5,
-    opacity: 0.6,
+    letterSpacing: 0.4,
+    opacity: 0.65,
   },
   // Hairline rule — separates identity from metadata fields
   footerDivider: {
@@ -254,39 +253,38 @@ const styles = StyleSheet.create({
   },
   bookFooterYear: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(10),
+    fontSize: 12,
     color: VOLUME_INK,
-    letterSpacing: 1.5,
-    opacity: 0.5,
+    letterSpacing: 1.2,
+    opacity: 0.6,
   },
   footerEntries: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(10),
+    fontSize: 12,
     color: VOLUME_INK,
-    letterSpacing: 1,
-    opacity: 0.5,
+    letterSpacing: 0.8,
+    opacity: 0.6,
   },
   // Passport number — legible enough to feel printed, not invisible
   passportNo: {
     fontFamily: FONTS.labelStamp,
-    fontSize: px(9),
+    fontSize: 12,
     color: VOLUME_INK,
-    letterSpacing: 1,
-    opacity: 0.42,
+    letterSpacing: 0.8,
+    opacity: 0.45,
     marginTop: 1,
   },
 
-  // Active record annotation — a single printed line, no border, no rotation
-  // Reads as metadata printed into the document rather than a badge attached to it
+  // Active record annotation — a single printed line, no border, no rotation.
+  // Sits in normal flow under the volume number (not absolutely positioned)
+  // so it stays clear of it no matter how the volume-number text reflows.
   currentLabel: {
-    position: 'absolute',
-    top: px(32),
-    right: px(14),
     fontFamily: FONTS.labelStamp,
-    fontSize: px(7),
+    fontSize: 12,
     color: VOLUME_INK,
-    letterSpacing: 2,
-    opacity: 0.45,
+    letterSpacing: 1.5,
+    opacity: 0.55,
+    textAlign: 'center',
+    marginTop: 4,
   },
-
 });
