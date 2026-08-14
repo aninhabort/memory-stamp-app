@@ -28,6 +28,7 @@ import { CollectionScreen }     from './src/screens/CollectionScreen';
 import { SearchScreen }         from './src/screens/SearchScreen';
 import { StampDetailScreen }    from './src/screens/StampDetailScreen';
 import { EditStampScreen }      from './src/screens/EditStampScreen';
+import { BadgeCollectionScreen } from './src/screens/BadgeCollectionScreen';
 import { SettingsScreen }       from './src/screens/SettingsScreen';
 import { ContactSupportScreen } from './src/screens/ContactSupportScreen';
 import { FAQScreen }            from './src/screens/FAQScreen';
@@ -120,6 +121,11 @@ function CollectionNavigator() {
   return (
     <CollectionStack.Navigator screenOptions={{ headerShown: false }}>
       <CollectionStack.Screen name="CollectionHome" component={CollectionScreen} />
+      <CollectionStack.Screen
+        name="BadgeCollection"
+        component={BadgeCollectionScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
       <CollectionStack.Screen
         name="StampDetail"
         component={StampDetailScreen}

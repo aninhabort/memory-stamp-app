@@ -6,6 +6,7 @@ import {
   ScrollView,
   StyleSheet,
   Dimensions,
+  Image,
 } from 'react-native';
 import { AppDialog } from '../components/AppDialog';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,7 +18,6 @@ import {
   COLORS,
   FONTS,
   FONT_SIZES,
-  SHADOW_PAPER,
   SPACING,
 } from '../constants/theme';
 import type { Stamp } from '../types';
@@ -32,6 +32,7 @@ import {
   resolveStampIcon,
 } from '../utils/stampUtils';
 import { PolaroidPhoto } from '../components/PolaroidPhoto';
+import sealBrushCircle from '../assets/images/seal-brush-circle.png';
 
 // StampDetail is registered in three different stacks (Passaporte, Coleção,
 // Buscar). A standalone param-list keeps it independent of any specific stack.
@@ -42,6 +43,10 @@ const SCREEN_WIDTH  = Dimensions.get('window').width;
 const PHOTO_WIDTH   = SCREEN_WIDTH - 40;
 // Larger print — polaroid fills most of its page, commanding the eye
 const POLAROID_SIZE = PHOTO_WIDTH - 70;
+
+// Brush-circle seal frame — hero (no photo) vs. compact (beneath a photo)
+const SEAL_SIZE         = 240;
+const SEAL_SIZE_COMPACT = 172;
 
 // Subtle dot grid shared with the form screens — reinforces paper texture
 const BG_DOTS: { top: number; left: number }[] = [];
@@ -141,47 +146,53 @@ export function StampDetailScreen({ route, navigation }: Props) {
 
             {/* ── Compact seal — catalog label beneath the photograph ───────── */}
             <View style={styles.sealWrapperCompact}>
-              <View style={[styles.sealOuter, styles.sealOuterCompact, { borderColor: stamp.color }]}>
-                <View
-                  style={[styles.sealInnerBorder, { borderColor: stamp.color }]}
-                  pointerEvents="none"
+              <View style={[styles.sealFrame, styles.sealFrameCompact]}>
+                <Image
+                  source={sealBrushCircle}
+                  style={[
+                    styles.sealImage,
+                    { width: SEAL_SIZE_COMPACT, height: SEAL_SIZE_COMPACT, tintColor: stamp.color },
+                  ]}
+                  resizeMode="contain"
                 />
-                <Ionicons name={resolveStampIcon(stamp)} size={28} color={stamp.color} />
-                <Text
-                  style={[styles.sealTitle, styles.sealTitleCompact, { color: stamp.color }]}
-                  numberOfLines={2}
-                >
-                  {stamp.title.toUpperCase()}
-                </Text>
-                <View style={[styles.sealLine, styles.sealLineCompact, { backgroundColor: stamp.color }]} />
-                <Text style={[styles.sealDate, styles.sealDateCompact, { color: stamp.color }]}>
-                  {formatArrivalDate(stamp.date)}
-                </Text>
-                <Text style={[styles.sealWatermark, { color: stamp.color }]}>
-                  {stamp.id.slice(0, 8).toUpperCase()}
-                </Text>
+                <View style={styles.sealContent}>
+                  <Ionicons name={resolveStampIcon(stamp)} size={22} color={stamp.color} />
+                  <Text
+                    style={[styles.sealTitle, styles.sealTitleCompact, { color: stamp.color }]}
+                    numberOfLines={2}
+                  >
+                    {stamp.title.toUpperCase()}
+                  </Text>
+                  <View style={[styles.sealLine, styles.sealLineCompact, { backgroundColor: stamp.color }]} />
+                  <Text style={[styles.sealDate, styles.sealDateCompact, { color: stamp.color }]}>
+                    {formatArrivalDate(stamp.date)}
+                  </Text>
+                </View>
               </View>
             </View>
           </>
         ) : (
           /* ── Full seal — hero when no photograph exists ───────────────── */
           <View style={styles.sealWrapper}>
-            <View style={[styles.sealOuter, { borderColor: stamp.color }]}>
-              <View
-                style={[styles.sealInnerBorder, { borderColor: stamp.color }]}
-                pointerEvents="none"
+            <View style={styles.sealFrame}>
+              <Image
+                source={sealBrushCircle}
+                style={[
+                  styles.sealImage,
+                  { width: SEAL_SIZE, height: SEAL_SIZE, tintColor: stamp.color },
+                ]}
+                resizeMode="contain"
               />
-              <Ionicons name={resolveStampIcon(stamp)} size={44} color={stamp.color} />
-              <Text style={[styles.sealTitle, { color: stamp.color }]} numberOfLines={2}>
-                {stamp.title.toUpperCase()}
-              </Text>
-              <View style={[styles.sealLine, { backgroundColor: stamp.color }]} />
-              <Text style={[styles.sealDate, { color: stamp.color }]}>
-                {formatArrivalDate(stamp.date)}
-              </Text>
-              <Text style={[styles.sealWatermark, { color: stamp.color }]}>
-                {stamp.id.slice(0, 8).toUpperCase()}
-              </Text>
+              <View style={styles.sealContent}>
+                <Ionicons name={resolveStampIcon(stamp)} size={36} color={stamp.color} />
+                <Text style={[styles.sealTitle, { color: stamp.color }]} numberOfLines={2}>
+                  {stamp.title.toUpperCase()}
+                </Text>
+                <View style={[styles.sealLine, { backgroundColor: stamp.color }]} />
+                <Text style={[styles.sealDate, { color: stamp.color }]}>
+                  {formatArrivalDate(stamp.date)}
+                </Text>
+              </View>
             </View>
           </View>
         )}
@@ -397,17 +408,26 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 20,
   },
-  sealOuter: {
-    width: 210,
-    height: 210,
-    borderWidth: 2,
-    borderRadius: 12,
-    backgroundColor: COLORS.surfaceContainerLow,
+  // Brush-circle frame — the artwork itself is the border, so no
+  // background/borderWidth/radius here; image + content simply stack.
+  sealFrame: {
+    width: SEAL_SIZE,
+    height: SEAL_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 14,
     transform: [{ rotate: '-3deg' }],
-    ...SHADOW_PAPER,
+  },
+  // Explicit width/height (set inline per-variant) rather than an inset-based
+  // absolute fill — sized directly against the frame constant.
+  sealImage: {
+    position: 'absolute',
+  },
+  // Text/icon stack, centered over the frame — sealTitle's maxWidth keeps
+  // wrapped lines from crossing the inscribed circle's brush stroke.
+  sealContent: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 
   // ── Seal — compact (catalog label beneath a photograph) ───────────────────────
@@ -415,20 +435,10 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginBottom: 16,
   },
-  sealOuterCompact: {
-    width: 148,
-    height: 148,
-    borderWidth: 1.5,
-    padding: 10,
+  sealFrameCompact: {
+    width: SEAL_SIZE_COMPACT,
+    height: SEAL_SIZE_COMPACT,
     transform: [{ rotate: '-2deg' }],
-  },
-
-  sealInnerBorder: {
-    position: 'absolute',
-    top: 8, left: 8, right: 8, bottom: 8,
-    borderWidth: 1,
-    borderRadius: 8,
-    opacity: 0.3,
   },
   sealTitle: {
     fontFamily: FONTS.labelStamp,
@@ -437,12 +447,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 19,
+    maxWidth: '62%',
   },
   sealTitleCompact: {
     fontSize: 10,
     letterSpacing: 1.5,
     marginTop: 5,
     lineHeight: 13,
+    maxWidth: '60%',
   },
   sealLine: {
     width: 36,
@@ -462,16 +474,6 @@ const styles = StyleSheet.create({
   },
   sealDateCompact: {
     fontSize: 10,
-  },
-  // Ghost catalog code — printer's registration mark level opacity
-  sealWatermark: {
-    position: 'absolute',
-    bottom: 9,
-    right: 10,
-    fontFamily: FONTS.labelStamp,
-    fontSize: 7,
-    letterSpacing: 1,
-    opacity: 0.18,
   },
 
   // ── Photographic record ───────────────────────────────────────────────────────

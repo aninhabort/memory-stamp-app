@@ -109,6 +109,29 @@ export const StorageService = {
     }
   },
 
+  /**
+   * Ids of Expedition Insignia badges the user has already seen unlocked —
+   * local-only (no cloud sync), used purely to decide whether a newly
+   * computed unlock is "new" and deserves the subtle unlock toast.
+   */
+  async getSeenBadgeIds(userId: string): Promise<string[] | null> {
+    try {
+      const stored = await AsyncStorage.getItem(buildKey(userId, 'seenBadgeIds'));
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error('Error loading seen badge ids:', error);
+      return null;
+    }
+  },
+
+  async setSeenBadgeIds(userId: string, ids: string[]): Promise<void> {
+    try {
+      await AsyncStorage.setItem(buildKey(userId, 'seenBadgeIds'), JSON.stringify(ids));
+    } catch (error) {
+      console.error('Error saving seen badge ids:', error);
+    }
+  },
+
   /** Flags for which datasets still need to be retried against the cloud after a failed push. */
   async getPendingSync(userId: string): Promise<PendingSyncFlags> {
     try {

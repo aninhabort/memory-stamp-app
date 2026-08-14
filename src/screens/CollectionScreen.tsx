@@ -33,13 +33,18 @@ import {
   SPACING,
 } from '../constants/theme';
 import { Stamp } from '../types';
+import { Insignia } from '../types/insignia';
+import { BadgeDetailModal } from '../components/BadgeDetailModal';
+import { InsigniaBadgeCard } from '../components/InsigniaBadgeCard';
+import { UnlockToast } from '../components/UnlockToast';
+import { useBadgeUnlockToast } from '../hooks/useBadgeUnlockToast';
+import { computeBadges, curateProfileBadges } from '../utils/badges';
 import { CollectionStackParamList, RootTabParamList } from '../navigation/types';
 import {
   resolveCoverPhoto,
   getInitials,
   getDocNo,
   formatDateShort,
-  IoniconsName,
 } from '../utils/stampUtils';
 
 type CollectionNavigation = CompositeNavigationProp<
@@ -47,8 +52,7 @@ type CollectionNavigation = CompositeNavigationProp<
   BottomTabNavigationProp<RootTabParamList>
 >;
 
-const SCREEN_WIDTH     = Dimensions.get('window').width;
-const BADGE_SIZE       = Math.floor((SCREEN_WIDTH - SPACING.pageMargin * 2 - 30) / 4);
+const SCREEN_WIDTH = Dimensions.get('window').width;
 
 // ── Explorer rank ──────────────────────────────────────────────────────────────
 
@@ -74,32 +78,6 @@ function getExplorerRank(count: number) {
     toNext:       nextThreshold ? nextThreshold - count : 0,
     progress:     Math.min(Math.max(progress, 0), 1),
   };
-}
-
-// ── Expedition insignia ────────────────────────────────────────────────────────
-
-interface Insignia {
-  id: string;
-  ionIcon: IoniconsName;
-  label: string;
-  desc: string;
-  unlocked: boolean;
-}
-
-function computeInsignia(stamps: Stamp[]): Insignia[] {
-  const countriesCount = new Set(stamps.map(s => s.country).filter(Boolean)).size;
-  const notesCount     = stamps.filter(s => s.note?.trim()).length;
-  const hasPhoto       = stamps.some(s => (s.photos?.length ?? 0) > 0);
-  return [
-    { id: 'first_journey', ionIcon: 'flag-outline',    label: 'First Journey', desc: 'Document your first destination', unlocked: stamps.length >= 1    },
-    { id: 'world_citizen', ionIcon: 'earth-outline',   label: 'World Citizen', desc: 'Register a country',             unlocked: countriesCount >= 1   },
-    { id: 'photographer',  ionIcon: 'camera-outline',  label: 'Photographer',  desc: 'Attach a photo to a stamp',      unlocked: hasPhoto               },
-    { id: 'explorer',      ionIcon: 'map-outline',     label: 'Explorer',      desc: 'Collect 5 entry stamps',         unlocked: stamps.length >= 5    },
-    { id: 'chronicler',    ionIcon: 'book-outline',    label: 'Chronicler',    desc: 'Write 5 field notes',            unlocked: notesCount >= 5       },
-    { id: 'jet_setter',    ionIcon: 'airplane-outline',label: 'Jet-Setter',    desc: 'Visit 3 countries',              unlocked: countriesCount >= 3   },
-    { id: 'archivist',     ionIcon: 'library-outline', label: 'Archivist',     desc: 'Reach 10 stamps',               unlocked: stamps.length >= 10   },
-    { id: 'legend',        ionIcon: 'star-outline',    label: 'Legend',        desc: 'Reach 50 stamps',               unlocked: stamps.length >= 50   },
-  ];
 }
 
 // ── Active directive (mission) ─────────────────────────────────────────────────
@@ -142,11 +120,12 @@ type GridCell = Stamp | { type: 'add' };
 
 export function CollectionScreen() {
   const navigation  = useNavigation<CollectionNavigation>();
-  const { stamps, loadStamps, syncStampsFromCloud, deleteStamp } = useStamps();
+  const { stamps, loading: stampsLoading, loadStamps, syncStampsFromCloud, deleteStamp } = useStamps();
   const { userName, reloadUserName } = useUserName();
   const { profilePhotoUrl } = useProfilePhoto();
   const insets = useSafeAreaInsets();
   const [dialogStamp, setDialogStamp] = useState<Stamp | null>(null);
+  const [selectedBadge, setSelectedBadge] = useState<Insignia | null>(null);
 
   const [query,  setQuery]  = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'name'>('date');
@@ -198,8 +177,10 @@ export function CollectionScreen() {
     [stamps],
   );
 
-  const insignia  = useMemo(() => computeInsignia(stamps), [stamps]);
-  const directive = useMemo(() => getActiveDirective(stamps, countriesCount), [stamps, countriesCount]);
+  const allBadges     = useMemo(() => computeBadges(stamps), [stamps]);
+  const profileBadges = useMemo(() => curateProfileBadges(allBadges), [allBadges]);
+  const directive     = useMemo(() => getActiveDirective(stamps, countriesCount), [stamps, countriesCount]);
+  const { toastBadge, dismissToast } = useBadgeUnlockToast(allBadges, stampsLoading);
 
   const filteredStamps = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -211,7 +192,7 @@ export function CollectionScreen() {
         )
       : stamps;
     return [...base].sort((a, b) =>
-      sortBy === 'date' ? b.date.localeCompare(a.date) : a.title.localeCompare(b.title),
+      sortBy === 'date' ? b.date.localeCompare(a.date) : a.place.localeCompare(b.place),
     );
   }, [stamps, query, sortBy]);
 
@@ -508,27 +489,21 @@ export function CollectionScreen() {
 
       {/* ── Expedition Insignia ───────────────────────────────────────────── */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>EXPEDITION INSIGNIA</Text>
+        <TouchableOpacity
+          style={styles.insigniaHeaderRow}
+          onPress={() => navigation.navigate('BadgeCollection')}
+          activeOpacity={0.7}
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+        >
+          <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>EXPEDITION INSIGNIA</Text>
+          <View style={styles.viewAllPill}>
+            <Text style={styles.viewAllText}>VIEW ALL</Text>
+            <Ionicons name="chevron-forward" size={12} color={COLORS.secondary} />
+          </View>
+        </TouchableOpacity>
         <View style={styles.insigniaGrid}>
-          {insignia.map((badge) => (
-            <View
-              key={badge.id}
-              style={[styles.insigniaBadge, badge.unlocked ? styles.badgeUnlocked : styles.badgeLocked]}
-            >
-              <Ionicons
-                name={badge.ionIcon}
-                size={20}
-                color={badge.unlocked ? COLORS.secondary : COLORS.outlineVariant}
-              />
-              <Text
-                style={[styles.insigniaLabel, badge.unlocked && styles.insigniaLabelUnlocked]}
-                numberOfLines={2}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-              >
-                {badge.label.toUpperCase()}
-              </Text>
-            </View>
+          {profileBadges.map((badge) => (
+            <InsigniaBadgeCard key={badge.id} badge={badge} onPress={() => setSelectedBadge(badge)} />
           ))}
         </View>
       </View>
@@ -578,6 +553,8 @@ export function CollectionScreen() {
           },
         ]}
       />
+      <BadgeDetailModal badge={selectedBadge} onClose={() => setSelectedBadge(null)} />
+      <UnlockToast badge={toastBadge} topOffset={insets.top + 8} onDismiss={dismissToast} />
     </View>
   );
 }
@@ -1095,43 +1072,27 @@ const styles = StyleSheet.create({
   },
 
   // ── Expedition Insignia ───────────────────────────────────────────────────────
+  insigniaHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  viewAllPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  viewAllText: {
+    fontFamily: FONTS.labelCaps,
+    fontSize: 11,
+    color: COLORS.secondary,
+    letterSpacing: 0.8,
+  },
   insigniaGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-  },
-  insigniaBadge: {
-    width: BADGE_SIZE,
-    borderRadius: RADIUS.md,
-    padding: 8,
-    alignItems: 'center',
-    gap: 6,
-  },
-  // Unlocked — solid burgundy border, feels like an earned stamp
-  badgeUnlocked: {
-    backgroundColor: COLORS.surfaceContainerLow,
-    borderWidth: 1.5,
-    borderColor: COLORS.secondary,
-    ...SHADOW_PAPER,
-  },
-  // Locked — dashed neutral border, waiting to be earned
-  badgeLocked: {
-    backgroundColor: COLORS.surfaceContainerHigh,
-    borderWidth: 1,
-    borderColor: COLORS.outlineVariant,
-    borderStyle: 'dashed',
-    opacity: 0.6,
-  },
-  insigniaLabel: {
-    fontFamily: FONTS.labelStamp,
-    fontSize: 11,
-    color: COLORS.onSurfaceVariant,
-    letterSpacing: 0.2,
-    textAlign: 'center',
-    lineHeight: 14,
-  },
-  insigniaLabelUnlocked: {
-    color: COLORS.onSurface,
   },
 
   // ── Empty State ───────────────────────────────────────────────────────────────

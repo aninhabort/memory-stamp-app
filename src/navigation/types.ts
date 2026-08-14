@@ -31,6 +31,7 @@ export type CollectionStackParamList = SettingsStackParamList & {
   CollectionHome: undefined;
   StampDetail: { stamp: Stamp };
   EditStamp: { stamp: Stamp };
+  BadgeCollection: undefined;
 };
 
 // Search tab stack
