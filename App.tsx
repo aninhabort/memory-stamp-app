@@ -38,9 +38,11 @@ import { LoadingScreen }        from './src/screens/LoadingScreen';
 import { LoginScreen }          from './src/screens/LoginScreen';
 import { SignUpScreen }         from './src/screens/SignUpScreen';
 import { ConsentGateScreen }    from './src/screens/ConsentGateScreen';
+import { PermissionsScreen }    from './src/screens/PermissionsScreen';
 import { VintageTabBar } from './src/components/VintageTabBar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { StampsProvider } from './src/contexts/StampsContext';
+import { StorageService } from './src/services/storage';
 import { COLORS } from './src/constants/theme';
 import {
   RootTabParamList,
@@ -168,7 +170,7 @@ function CollectionNavigator() {
 // Main app
 
 function AppContent() {
-  const { isAuthenticated, isLoading, hasAccount, consentStatus, login, signup, loginWithGoogle } = useAuth();
+  const { isAuthenticated, isLoading, hasAccount, consentStatus, userId, login, signup, loginWithGoogle } = useAuth();
 
   const handleGoogleLogin = async () => {
     try {
@@ -181,6 +183,14 @@ function AppContent() {
     }
   };
   const [showSignUp, setShowSignUp] = React.useState<boolean | null>(null);
+  const [permissionsOnboardingDone, setPermissionsOnboardingDone] = React.useState<boolean | null>(null);
+
+  React.useEffect(() => {
+    if (consentStatus !== 'satisfied' || !userId) return;
+    StorageService.getPermissionsOnboardingDone(userId).then(done => {
+      setPermissionsOnboardingDone(done);
+    });
+  }, [consentStatus, userId]);
   const [fontsLoaded] = useFonts({
     LibreCaslonText_400Regular,
     LibreCaslonText_700Bold,
@@ -252,6 +262,22 @@ function AppContent() {
   // accepted. See ConsentGateScreen for details.
   if (consentStatus === 'required') {
     return <ConsentGateScreen />;
+  }
+
+  // Permissions onboarding — shown once per account, right after consent
+  if (permissionsOnboardingDone === null) {
+    return <LoadingScreen />;
+  }
+
+  if (!permissionsOnboardingDone && userId) {
+    return (
+      <PermissionsScreen
+        onComplete={async () => {
+          await StorageService.setPermissionsOnboardingDone(userId);
+          setPermissionsOnboardingDone(true);
+        }}
+      />
+    );
   }
 
   // Show main app if authenticated and consent is current

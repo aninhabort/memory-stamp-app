@@ -1,0 +1,196 @@
+{
+  "_meta": {
+    "generated_at": "2026-08-18",
+    "project": "qtwvjxfenvobjbdpghfn",
+    "purpose": "FASE 1 backup — candidatos a exclusão pós-QA. NÃO apagar sem confirmação explícita.",
+    "real_user_kept": {
+      "user_id": "807c5d38-29d1-4e7c-b4f5-5b47f1ce36dd",
+      "email": "anacbort.dev@gmail.com",
+      "note": "conta real da desenvolvedora — NÃO incluída nos candidatos"
+    }
+  },
+
+  "auth_users_candidates": [
+    {
+      "table": "auth.users",
+      "id": "df52cfba-18b9-475e-acac-613335e23b8c",
+      "email": "qa01@qa.io",
+      "created_at": "2026-08-17T18:17:56.112605Z",
+      "last_sign_in_at": "2026-08-17T18:47:08.360089Z",
+      "provider": "email",
+      "motivo_suspeita": "domínio @qa.io — conta de teste explícita criada em 2026-08-17 (dia do QA)"
+    },
+    {
+      "table": "auth.users",
+      "id": "f6547f05-af7e-4464-ae5b-8d8a998c90c9",
+      "email": "qa-temp-test-002@test.com",
+      "created_at": "2026-08-17T18:06:26.495710Z",
+      "last_sign_in_at": "2026-08-17T18:06:26.517380Z",
+      "provider": "email",
+      "motivo_suspeita": "prefixo 'qa-temp-test-002', domínio @test.com, Conta B do teste de isolamento RLS"
+    },
+    {
+      "table": "auth.users",
+      "id": "3f6b93dc-0c5c-4fd5-93a1-f984a3f765cd",
+      "email": "qa-temp-test-001@test.com",
+      "created_at": "2026-08-17T18:06:10.124806Z",
+      "last_sign_in_at": "2026-08-17T18:06:10.148320Z",
+      "provider": "email",
+      "motivo_suspeita": "prefixo 'qa-temp-test-001', domínio @test.com, Conta A do teste de isolamento RLS"
+    }
+  ],
+
+  "user_data_candidates": [
+    {
+      "table": "public.user_data",
+      "user_id": "df52cfba-18b9-475e-acac-613335e23b8c",
+      "email_ref": "qa01@qa.io",
+      "user_name": null,
+      "stamps": [
+        {
+          "id": "1786990000001",
+          "title": "QA Test - Paris",
+          "place": "Paris",
+          "country": "France",
+          "note": "Test stamp for QA delete flow",
+          "createdAt": "2026-08-17T18:48:10.000Z",
+          "deletedAt": "2026-08-17T19:02:30.000Z",
+          "photos": []
+        },
+        {
+          "id": "1786990000002",
+          "title": "QA Test - Tokyo",
+          "place": "Tokyo",
+          "country": "Japan",
+          "note": "Persistence test stamp 1",
+          "createdAt": "2026-08-17T19:05:00.000Z",
+          "photos": ["https://qtwvjxfenvobjbdpghfn.supabase.co/storage/v1/object/public/stamp-photos/df52cfba-18b9-475e-acac-613335e23b8c/1786990000002/1787053250071-0.jpg"],
+          "has_storage_files": true
+        },
+        {
+          "id": "1786990000003",
+          "title": "QA Test - Rio",
+          "place": "Rio de Janeiro",
+          "country": "Brazil",
+          "note": "Persistence test stamp 2",
+          "createdAt": "2026-08-17T19:05:01.000Z",
+          "photos": []
+        }
+      ],
+      "motivo_suspeita": "todos os stamps têm prefixo 'QA Test -', criados em 2026-08-17"
+    },
+    {
+      "table": "public.user_data",
+      "user_id": "f6547f05-af7e-4464-ae5b-8d8a998c90c9",
+      "email_ref": "qa-temp-test-002@test.com",
+      "user_name": null,
+      "stamps": [
+        {
+          "id": "stamp-qa-B-001",
+          "title": "Stamp Secreto de B",
+          "place": "Tokyo",
+          "note": null,
+          "createdAt": "2024-02-01T00:00:00Z",
+          "photos": [],
+          "motivo_suspeita": "ID hardcoded 'stamp-qa-B-001', data falsa 2024-02-01, Conta B do teste RLS"
+        }
+      ]
+    },
+    {
+      "table": "public.user_data",
+      "user_id": "3f6b93dc-0c5c-4fd5-93a1-f984a3f765cd",
+      "email_ref": "qa-temp-test-001@test.com",
+      "user_name": null,
+      "stamps": [
+        {
+          "id": "stamp-qa-A-001",
+          "title": "Stamp Secreto de A",
+          "place": "Paris",
+          "note": null,
+          "createdAt": "2024-01-01T00:00:00Z",
+          "photos": [],
+          "has_storage_files": true,
+          "motivo_suspeita": "ID hardcoded 'stamp-qa-A-001', data falsa 2024-01-01, Conta A do teste RLS"
+        }
+      ]
+    }
+  ],
+
+  "user_consents_candidates": [
+    {
+      "table": "public.user_consents",
+      "id": "30749a6d-b19b-465c-be6b-eafab7fd9fa3",
+      "user_id": "df52cfba-18b9-475e-acac-613335e23b8c",
+      "email_ref": "qa01@qa.io",
+      "terms_version": "0.1.0-draft",
+      "privacy_version": "0.1.0-draft",
+      "consented_at": "2026-08-17T18:32:05.391114+00:00",
+      "motivo_suspeita": "pertence ao usuário de teste qa01@qa.io; cascadeará automaticamente se user_id for deletado de auth.users"
+    }
+  ],
+
+  "storage_files_candidates": [
+    {
+      "bucket": "stamp-photos",
+      "path": "df52cfba-18b9-475e-acac-613335e23b8c/1786990000002/1786995716394-0.jpg",
+      "storage_id": "13bebd22-7db8-457b-b185-6bde2a6821c7",
+      "size_bytes": 660823,
+      "created_at": "2026-08-17T19:41:57.578Z",
+      "motivo_suspeita": "pasta de usuário de teste qa01@qa.io; stamp 'QA Test - Tokyo'"
+    },
+    {
+      "bucket": "stamp-photos",
+      "path": "df52cfba-18b9-475e-acac-613335e23b8c/1786990000002/1787053249991-0.jpg",
+      "storage_id": "54dad784-6a1e-4c58-bbf6-30c5f45b7be0",
+      "size_bytes": 660823,
+      "created_at": "2026-08-18T11:40:51.337Z",
+      "motivo_suspeita": "mesmo etag que os outros — mesma imagem re-enviada hoje (2026-08-18) durante sessão de QA"
+    },
+    {
+      "bucket": "stamp-photos",
+      "path": "df52cfba-18b9-475e-acac-613335e23b8c/1786990000002/1787053250071-0.jpg",
+      "storage_id": "cd920350-65c6-4fcb-9122-ec4d71048c58",
+      "size_bytes": 660823,
+      "created_at": "2026-08-18T11:40:51.491Z",
+      "motivo_suspeita": "mesma imagem, enviada hoje; é o arquivo referenciado pelo stamp 'QA Test - Tokyo' em user_data"
+    },
+    {
+      "bucket": "stamp-photos",
+      "path": "df52cfba-18b9-475e-acac-613335e23b8c/1786990000002/qa-test-1786995981.jpg",
+      "storage_id": "5925e874-74f6-47f2-a334-db72bb20c84d",
+      "size_bytes": 660823,
+      "created_at": "2026-08-17T19:46:22.428Z",
+      "motivo_suspeita": "nome do arquivo contém 'qa-test-' explicitamente; não referenciado em nenhum stamp ativo"
+    },
+    {
+      "bucket": "stamp-photos",
+      "path": "3f6b93dc-0c5c-4fd5-93a1-f984a3f765cd/stamp-qa-A-001/test-photo.jpg",
+      "storage_id": "56456d28-de76-4f24-b6a3-93ed6ffaf250",
+      "size_bytes": 24,
+      "created_at": "2026-08-17T18:08:31.577Z",
+      "motivo_suspeita": "pasta de usuário de teste (Conta A RLS); arquivo de 24 bytes (placeholder fake); nome 'test-photo.jpg'"
+    }
+  ],
+
+  "storage_orphan_references_in_real_user": {
+    "note": "Estes são URLs no user_data da usuária real (807c5d38) que apontam para arquivos que NÃO existem mais no storage. São referências quebradas — os stamps correspondentes já estão soft-deleted.",
+    "items": [
+      {
+        "stamp_id": "1786551723073",
+        "stamp_title": "Teste",
+        "stamp_place": "Paris",
+        "stamp_deletedAt": "2026-08-12T16:35:00.195Z",
+        "url": "https://qtwvjxfenvobjbdpghfn.supabase.co/storage/v1/object/public/stamp-photos/807c5d38-29d1-4e7c-b4f5-5b47f1ce36dd/1786551723073/1786551723236-0.jpg",
+        "file_exists_in_storage": false
+      },
+      {
+        "stamp_id": "1786720001729",
+        "stamp_title": "Testando",
+        "stamp_place": "Coimbra",
+        "stamp_deletedAt": "2026-08-14T16:59:36.959Z",
+        "url": "https://qtwvjxfenvobjbdpghfn.supabase.co/storage/v1/object/public/stamp-photos/807c5d38-29d1-4e7c-b4f5-5b47f1ce36dd/1786720001729/1786720001953-0.jpg",
+        "file_exists_in_storage": false
+      }
+    ]
+  }
+}

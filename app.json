@@ -20,7 +20,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Memory Stamp uses your camera so you can capture a new photo for a stamp.",
         "NSPhotoLibraryUsageDescription": "Memory Stamp uses your photo library so you can choose a picture to add to a stamp."
-      }
+      },
+      "bundleIdentifier": "com.aninhabort.memorystampapp"
     },
     "android": {
       "adaptiveIcon": {
@@ -30,7 +31,8 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
       ],
       "package": "com.aninhabort.memorystampapp"
     },

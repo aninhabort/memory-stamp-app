@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,6 +27,7 @@ import { CategoryPicker } from './CategoryPicker';
 import { ColorPicker, PRESET_COLORS } from './ColorPicker';
 import { usePhotoPermission } from '../hooks/usePhotoPermission';
 import { useCameraPermission } from '../hooks/useCameraPermission';
+import { PermissionsService } from '../services/permissions';
 
 const ICONS: React.ComponentProps<typeof Ionicons>['name'][] = [
   'globe-outline',          'musical-notes-outline', 'wine-outline',          'happy-outline',
@@ -99,6 +100,26 @@ export function StampForm({
 
   const { requestAccess: requestPhotoAccess, PermissionDialog: PhotoPermissionDialog } = usePhotoPermission();
   const { requestAccess: requestCameraAccess, PermissionDialog: CameraPermissionDialog } = useCameraPermission();
+
+  // On first mount, proactively prime photo + camera permissions if they
+  // haven't been decided yet — so the user sees the explanation dialog before
+  // they ever touch the photo button, not buried inside the action sheet.
+  const primedRef = useRef(false);
+  useEffect(() => {
+    if (primedRef.current) return;
+    primedRef.current = true;
+    (async () => {
+      const photoStatus = await PermissionsService.getPhotoLibraryStatus();
+      if (photoStatus === 'undetermined') {
+        requestPhotoAccess(() => {});
+        return;
+      }
+      const cameraStatus = await PermissionsService.getCameraStatus();
+      if (cameraStatus === 'undetermined') {
+        requestCameraAccess(() => {});
+      }
+    })();
+  }, [requestPhotoAccess, requestCameraAccess]);
 
   const resetForm = () => {
     setTitle(''); setPlace(''); setCountry('');

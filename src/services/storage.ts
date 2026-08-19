@@ -197,6 +197,45 @@ export const StorageService = {
    * profile name, pending-sync flags). Never touches other accounts'
    * namespaced keys on the same device.
    */
+  async getPendingPhotoStampIds(userId: string): Promise<string[]> {
+    try {
+      const stored = await AsyncStorage.getItem(buildKey(userId, 'pendingPhotoUploads'));
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  async setPendingPhotoStampIds(userId: string, ids: string[]): Promise<void> {
+    try {
+      const key = buildKey(userId, 'pendingPhotoUploads');
+      if (ids.length === 0) {
+        await AsyncStorage.removeItem(key);
+      } else {
+        await AsyncStorage.setItem(key, JSON.stringify(ids));
+      }
+    } catch (error) {
+      console.error('Error saving pending photo upload ids:', error);
+    }
+  },
+
+  async getPermissionsOnboardingDone(userId: string): Promise<boolean> {
+    try {
+      const value = await AsyncStorage.getItem(buildKey(userId, 'permissionsOnboardingDone'));
+      return value === 'true';
+    } catch {
+      return false;
+    }
+  },
+
+  async setPermissionsOnboardingDone(userId: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(buildKey(userId, 'permissionsOnboardingDone'), 'true');
+    } catch (error) {
+      console.error('Error saving permissions onboarding flag:', error);
+    }
+  },
+
   async clearAll(userId: string): Promise<void> {
     try {
       await AsyncStorage.multiRemove([
@@ -204,6 +243,8 @@ export const StorageService = {
         buildKey(userId, 'volumes'),
         buildKey(userId, 'userName'),
         buildKey(userId, 'pendingSync'),
+        buildKey(userId, 'pendingPhotoUploads'),
+        buildKey(userId, 'permissionsOnboardingDone'),
       ]);
     } catch (error) {
       console.error('Error clearing storage:', error);

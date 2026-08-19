@@ -128,16 +128,65 @@ export function StampsProvider({ children }: { children: React.ReactNode }) {
     await pushStampsToCloud(userId, local);
   }, [userId, pushStampsToCloud]);
 
+  const flushPendingPhotos = useCallback(async () => {
+    if (!userId) return;
+    const pendingIds = await StorageService.getPendingPhotoStampIds(userId);
+    if (!pendingIds.length) return;
+
+    const allStamps = await StorageService.getStamps(userId) ?? stampsRef.current;
+    let remaining = [...pendingIds];
+    let dirty = false;
+    const next = [...allStamps];
+
+    for (const stampId of pendingIds) {
+      const idx = next.findIndex(s => s.id === stampId);
+      // Stamp was deleted or has no local photos left — nothing to retry
+      if (idx === -1 || next[idx].deletedAt) {
+        remaining = remaining.filter(id => id !== stampId);
+        continue;
+      }
+      const hasLocal = (next[idx].photos ?? []).some(p => !p.startsWith('http'));
+      if (!hasLocal) {
+        remaining = remaining.filter(id => id !== stampId);
+        continue;
+      }
+      try {
+        const uploaded = await ImageStorageService.uploadStampPhotos(userId, stampId, next[idx].photos ?? []);
+        next[idx] = { ...next[idx], photos: uploaded };
+        remaining = remaining.filter(id => id !== stampId);
+        dirty = true;
+      } catch {
+        // Still offline or file gone — keep in queue, try next time
+      }
+    }
+
+    await StorageService.setPendingPhotoStampIds(userId, remaining);
+    if (dirty) {
+      await StorageService.setStamps(userId, next);
+      setStamps(next);
+      await pushStampsToCloud(userId, next);
+    }
+  }, [userId, pushStampsToCloud]);
+
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => {
-      if (state === 'active') flushPendingStamps();
+    const subscription = AppState.addEventListener('change', async (state) => {
+      if (state !== 'active') return;
+      await flushPendingStamps();
+      await flushPendingPhotos();
     });
     return () => subscription.remove();
-  }, [flushPendingStamps]);
+  }, [flushPendingStamps, flushPendingPhotos]);
+
+  // Flush pending photo uploads on cold start (AppState listener only fires on *change*)
+  useEffect(() => {
+    if (!userId) return;
+    flushPendingPhotos();
+  }, [userId, flushPendingPhotos]);
 
   const syncStampsFromCloud = useCallback(async (): Promise<boolean> => {
     if (!userId) return false;
     await flushPendingStamps();
+    await flushPendingPhotos();
     let cloud: Awaited<ReturnType<typeof CloudStorageService.getUserData>>;
     try {
       cloud = await CloudStorageService.getUserData(userId);
@@ -188,8 +237,20 @@ export function StampsProvider({ children }: { children: React.ReactNode }) {
       await StorageService.setStamps(uid, updated);
       setStamps(updated);
       await pushStampsToCloud(uid, updated);
+      // Clear from pending queue if a previous attempt had failed
+      const pending = await StorageService.getPendingPhotoStampIds(uid);
+      if (pending.includes(stampId)) {
+        await StorageService.setPendingPhotoStampIds(uid, pending.filter(id => id !== stampId));
+      }
     } catch (error) {
-      console.warn('Error uploading stamp photos to cloud storage:', error);
+      console.warn('Photo upload failed, queued for retry on next foreground:', error);
+      // Ensure the text data (with local URI) still reaches the cloud
+      await PendingSyncService.markPending(uid, 'stamps');
+      // Queue the photo upload for retry
+      const pending = await StorageService.getPendingPhotoStampIds(uid);
+      if (!pending.includes(stampId)) {
+        await StorageService.setPendingPhotoStampIds(uid, [...pending, stampId]);
+      }
     }
   }, [pushStampsToCloud]);
 
