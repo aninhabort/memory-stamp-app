@@ -5,13 +5,13 @@
     "version": "1.0.0",
     "scheme": "memorystamp",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/app-icon.png",
     "userInterfaceStyle": "light",
     "androidStatusBar": {
       "barStyle": "dark-content"
     },
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/app-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
